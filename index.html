@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Wireless Mic Pro</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#07101d;color:#fff;font-family:system-ui,Arial}main{max-width:850px;margin:auto;padding:16px}
+.card{background:#111d30;border:1px solid #294464;border-radius:18px;padding:16px;margin:14px 0}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+button,input{width:100%;min-height:50px;border-radius:12px;border:1px solid #355474;background:#091727;color:#fff;padding:10px;font-size:16px}
+button{font-weight:800;cursor:pointer}.primary{background:#78adff;color:#07101d;border:0}.hidden{display:none!important}
+.code{text-align:center;font-size:42px;letter-spacing:8px;font-weight:900;padding:16px;border:1px dashed #53739c;border-radius:14px}
+.ok{color:#6ee9a3}.bad{color:#ff8c9a}.muted{color:#aab9ce}.meter{height:14px;background:#07101d;border-radius:9px;overflow:hidden}
+#meterBar{height:100%;width:0;background:#6ee9a3}.row{display:flex;gap:10px;flex-wrap:wrap}.row button{flex:1}
+label{display:block;margin:12px 0 5px}.status{padding:10px;border-radius:12px;background:#091727}
+@media(max-width:650px){.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body><main>
+<h1>🎙 Wireless Mic Pro</h1>
+<p class="muted">Same hosted link dono phones me open karein.</p>
+
+<div class="card"><div id="server" class="status">Connecting server…</div></div>
+
+<div class="card">
+<h2>Select Phone</h2>
+<div class="grid">
+<button id="masterRole">📱 Master Phone</button>
+<button id="micRole">🎤 Mic Phone</button>
+</div>
+</div>
+
+<div id="masterPanel" class="card hidden">
+<h2>Master Login</h2>
+<input id="phone" inputmode="numeric" placeholder="Master number"><br><br>
+<input id="pass" type="password" placeholder="Password"><br><br>
+<button id="login" class="primary">Login</button>
+<p id="loginMsg"></p>
+<div id="masterRoom" class="hidden">
+<button id="create" class="primary">Generate Connection Code</button>
+<div id="codeWrap" class="hidden">
+<h3>Mic Phone me ye code enter karein</h3>
+<div id="code" class="code">------</div>
+</div>
+<p id="masterStatus" class="muted">Mic not connected</p>
+<audio id="remoteAudio" autoplay playsinline></audio>
+<label>Mic Output Volume</label>
+<input id="outVol" type="range" min="0" max="1" step=".01" value="1">
+</div>
+</div>
+
+<div id="micPanel" class="card hidden">
+<h2>Mic Phone</h2>
+<input id="joinCode" maxlength="6" inputmode="numeric" placeholder="6 digit code"><br><br>
+<button id="join" class="primary">Connect & Start Mic</button>
+<p id="micStatus"></p>
+<div id="micControls" class="hidden">
+<label>Mic Level</label>
+<div class="meter"><div id="meterBar"></div></div>
+<label>Gain</label>
+<input id="gain" type="range" min="0" max="3" step=".05" value="1">
+<div class="row"><button id="mute">Mute</button><button id="unmute">Unmute</button></div>
+</div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+let socket=null, pc=null, stream=null, audioCtx=null, source=null, gainNode=null, analyser=null, dest=null, pendingIce=[];
+
+function showRole(r){
+  $("masterPanel").classList.toggle("hidden",r!=="master");
+  $("micPanel").classList.toggle("hidden",r!=="mic");
+}
+$("masterRole").onclick=()=>showRole("master");
+$("micRole").onclick=()=>showRole("mic");
+
+socket=io();
+socket.on("connect",()=>{$("server").textContent="✓ Server connected";$("server").className="status ok"});
+socket.on("connect_error",()=>{$("server").textContent="Server connection failed";$("server").className="status bad"});
+
+$("login").onclick=async()=>{
+  const r=await fetch("/api/master-login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({phone:$("phone").value.trim(),password:$("pass").value})});
+  const d=await r.json();
+  if(d.ok){$("loginMsg").textContent="✓ Login successful";$("loginMsg").className="ok";$("masterRoom").classList.remove("hidden")}
+  else{$("loginMsg").textContent="Wrong number/password";$("loginMsg").className="bad"}
+};
+
+$("create").onclick=()=>socket.emit("master-create");
+socket.on("master-created",d=>{$("code").textContent=d.code;$("codeWrap").classList.remove("hidden")});
+
+socket.on("mic-connected",async()=>{
+  $("masterStatus").textContent="✓ Mic connected";
+  $("masterStatus").className="ok";
+  await createMasterPC();
+  const offer=await pc.createOffer();
+  await pc.setLocalDescription(offer);
+  socket.emit("webrtc-offer",offer);
+});
+socket.on("mic-disconnected",()=>{$("masterStatus").textContent="Mic disconnected";$("masterStatus").className="bad"});
+
+async function createMasterPC(){
+  if(pc) pc.close();
+  pc=new RTCPeerConnection({iceServers:[{urls:"stun:stun.l.google.com:19302"}]});
+  pc.onicecandidate=e=>{if(e.candidate)socket.emit("ice-candidate",e.candidate)};
+  pc.ontrack=e=>{
+    $("remoteAudio").srcObject=e.streams[0];
+    $("remoteAudio").volume=+$("outVol").value;
+    $("remoteAudio").play().catch(()=>{});
+  };
+}
+$("outVol").oninput=()=>{$("remoteAudio").volume=+$("outVol").value};
+
+socket.on("webrtc-answer",async a=>{
+  if(!pc) return;
+  await pc.setRemoteDescription(a);
+  for(const c of pendingIce.splice(0)) try{await pc.addIceCandidate(c)}catch{}
+});
+
+socket.on("webrtc-offer",async offer=>{
+  if(!pc){
+    pc=new RTCPeerConnection({iceServers:[{urls:"stun:stun.l.google.com:19302"}]});
+    pc.onicecandidate=e=>{if(e.candidate)socket.emit("ice-candidate",e.candidate)};
+  }
+  await pc.setRemoteDescription(offer);
+  for(const c of pendingIce.splice(0)) try{await pc.addIceCandidate(c)}catch{}
+  if(dest) dest.stream.getTracks().forEach(t=>pc.addTrack(t,dest.stream));
+  const ans=await pc.createAnswer();
+  await pc.setLocalDescription(ans);
+  socket.emit("webrtc-answer",ans);
+});
+
+socket.on("ice-candidate",async c=>{
+  if(pc&&pc.remoteDescription) try{await pc.addIceCandidate(c)}catch{}
+  else pendingIce.push(c);
+});
+
+$("join").onclick=async()=>{
+  const code=$("joinCode").value.trim();
+  if(!/^\d{6}$/.test(code)){ $("micStatus").textContent="6 digit code enter karein"; return; }
+  try{
+    stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
+    audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+    source=audioCtx.createMediaStreamSource(stream);
+    gainNode=audioCtx.createGain();
+    analyser=audioCtx.createAnalyser();
+    dest=audioCtx.createMediaStreamDestination();
+    source.connect(gainNode);
+    gainNode.connect(analyser);
+    analyser.connect(dest);
+    animateMeter();
+    socket.emit("mic-join",{code});
+    $("micStatus").textContent="Joining…";
+  }catch(e){
+    $("micStatus").textContent="Microphone permission required";
+    $("micStatus").className="bad";
+  }
+};
+
+socket.on("mic-joined",()=>{
+  $("micStatus").textContent="✓ Connected — mic live";
+  $("micStatus").className="ok";
+  $("micControls").classList.remove("hidden");
+});
+socket.on("join-failed",d=>{$("micStatus").textContent=d.message;$("micStatus").className="bad"});
+
+$("gain").oninput=()=>{if(gainNode)gainNode.gain.value=+$("gain").value};
+$("mute").onclick=()=>{if(stream)stream.getAudioTracks().forEach(t=>t.enabled=false)};
+$("unmute").onclick=()=>{if(stream)stream.getAudioTracks().forEach(t=>t.enabled=true)};
+
+function animateMeter(){
+  if(!analyser)return;
+  const a=new Uint8Array(analyser.frequencyBinCount);
+  function f(){
+    analyser.getByteFrequencyData(a);
+    let s=0; for(const v of a)s+=v;
+    $("meterBar").style.width=Math.min(100,(s/a.length)*1.3)+"%";
+    requestAnimationFrame(f);
+  }
+  f();
+}
+</script>
+</main></body></html>
