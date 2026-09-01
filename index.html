@@ -3,181 +3,499 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#07101d">
 <title>Wireless Mic Pro</title>
 <style>
-*{box-sizing:border-box}body{margin:0;background:#07101d;color:#fff;font-family:system-ui,Arial}main{max-width:850px;margin:auto;padding:16px}
-.card{background:#111d30;border:1px solid #294464;border-radius:18px;padding:16px;margin:14px 0}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-button,input{width:100%;min-height:50px;border-radius:12px;border:1px solid #355474;background:#091727;color:#fff;padding:10px;font-size:16px}
-button{font-weight:800;cursor:pointer}.primary{background:#78adff;color:#07101d;border:0}.hidden{display:none!important}
-.code{text-align:center;font-size:42px;letter-spacing:8px;font-weight:900;padding:16px;border:1px dashed #53739c;border-radius:14px}
-.ok{color:#6ee9a3}.bad{color:#ff8c9a}.muted{color:#aab9ce}.meter{height:14px;background:#07101d;border-radius:9px;overflow:hidden}
-#meterBar{height:100%;width:0;background:#6ee9a3}.row{display:flex;gap:10px;flex-wrap:wrap}.row button{flex:1}
-label{display:block;margin:12px 0 5px}.status{padding:10px;border-radius:12px;background:#091727}
-@media(max-width:650px){.grid{grid-template-columns:1fr}}
+:root{--bg:#07101d;--panel:#101d31;--card:#142640;--line:#2d4d73;--text:#fff;--muted:#aebed3;--blue:#78adff;--green:#51e08a;--red:#ff7184}
+*{box-sizing:border-box}
+body{margin:0;background:linear-gradient(180deg,#07101d,#0a1628 60%,#08111e);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial}
+main{max-width:1050px;margin:auto;padding:14px}
+h1{margin:8px 0;font-size:clamp(28px,6vw,44px)}h2{margin:2px 0 14px}
+p{line-height:1.45}.muted{color:var(--muted)}.ok{color:var(--green)}.bad{color:var(--red)}
+.panel{background:rgba(16,29,49,.96);border:1px solid var(--line);border-radius:18px;padding:15px;margin:13px 0;box-shadow:0 12px 40px rgba(0,0,0,.15)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+button,input{width:100%;min-height:48px;border-radius:12px;border:1px solid #385b84;background:#091728;color:#fff;font-size:16px;padding:9px 12px}
+button{cursor:pointer;font-weight:800;touch-action:manipulation}.primary{background:var(--blue);border:0;color:#06101d}.danger{background:#5a1722}.green{background:#153b28}
+.hidden{display:none!important}.code{font-size:42px;text-align:center;font-weight:900;letter-spacing:8px;padding:15px;border-radius:14px;background:#081525;border:1px dashed #5377a4}
+.status{padding:10px 12px;border-radius:12px;background:#091728;border:1px solid #263f5e}
+label{display:flex;justify-content:space-between;margin:12px 0 6px;color:#dce8f8;font-weight:650}.value{color:var(--blue)}
+.meter{height:17px;border-radius:12px;background:#07111e;overflow:hidden;border:1px solid #294462}.meter>div{height:100%;width:0;background:linear-gradient(90deg,#5fe79a,#d5ed62,#ff7b7b);transition:width .05s}
+.micOrb{width:82px;height:82px;border-radius:50%;margin:10px auto;display:grid;place-items:center;background:#0a1728;border:2px solid #355a85;font-size:38px}
+.micOrb.live{animation:pulse 1.1s infinite}@keyframes pulse{50%{box-shadow:0 0 0 16px rgba(81,224,138,.08),0 0 35px rgba(81,224,138,.3);border-color:#51e08a}}
+.sectionTitle{margin-top:18px;border-top:1px solid #294462;padding-top:14px}
+.ytResults{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}.ytItem{display:flex;gap:10px;align-items:center;background:#091728;border:1px solid #294462;border-radius:12px;padding:8px;cursor:pointer}.ytItem img{width:100px;border-radius:8px}.ytItem div{font-size:13px}
+#ytPlayer{min-height:220px;border-radius:14px;overflow:hidden;background:#05090f}
+.small{font-size:13px}.spacer{height:8px}
+@media(max-width:720px){.grid2,.grid3,.ytResults{grid-template-columns:1fr}.ytItem img{width:90px}}
 </style>
 </head>
-<body><main>
+<body>
+<main>
 <h1>🎙 Wireless Mic Pro</h1>
-<p class="muted">Same hosted link dono phones me open karein.</p>
+<p class="muted">Mic Phone → Internet/WebRTC → Master Phone → Phone/Bluetooth speaker.</p>
 
-<div class="card"><div id="server" class="status">Connecting server…</div></div>
+<section class="panel">
+  <div id="serverStatus" class="status">Connecting to server…</div>
+</section>
 
-<div class="card">
-<h2>Select Phone</h2>
-<div class="grid">
-<button id="masterRole">📱 Master Phone</button>
-<button id="micRole">🎤 Mic Phone</button>
-</div>
-</div>
+<section class="panel">
+  <h2>Select Phone</h2>
+  <div class="grid2">
+    <button id="chooseMaster">📱 Master Phone</button>
+    <button id="chooseMic">🎤 Mic Phone</button>
+  </div>
+</section>
 
-<div id="masterPanel" class="card hidden">
-<h2>Master Login</h2>
-<input id="phone" inputmode="numeric" placeholder="Master number"><br><br>
-<input id="pass" type="password" placeholder="Password"><br><br>
-<button id="login" class="primary">Login</button>
-<p id="loginMsg"></p>
-<div id="masterRoom" class="hidden">
-<button id="create" class="primary">Generate Connection Code</button>
-<div id="codeWrap" class="hidden">
-<h3>Mic Phone me ye code enter karein</h3>
-<div id="code" class="code">------</div>
-</div>
-<p id="masterStatus" class="muted">Mic not connected</p>
-<audio id="remoteAudio" autoplay playsinline></audio>
-<label>Mic Output Volume</label>
-<input id="outVol" type="range" min="0" max="1" step=".01" value="1">
-</div>
-</div>
+<section id="masterLoginPanel" class="panel hidden">
+  <h2>Master Login</h2>
+  <input id="masterPhone" inputmode="numeric" placeholder="Master number">
+  <div class="spacer"></div>
+  <input id="masterPassword" type="password" placeholder="Password">
+  <div class="spacer"></div>
+  <button id="masterLoginBtn" class="primary">Login</button>
+  <p id="loginMsg" class="small"></p>
+</section>
 
-<div id="micPanel" class="card hidden">
-<h2>Mic Phone</h2>
-<input id="joinCode" maxlength="6" inputmode="numeric" placeholder="6 digit code"><br><br>
-<button id="join" class="primary">Connect & Start Mic</button>
-<p id="micStatus"></p>
-<div id="micControls" class="hidden">
-<label>Mic Level</label>
-<div class="meter"><div id="meterBar"></div></div>
-<label>Gain</label>
-<input id="gain" type="range" min="0" max="3" step=".05" value="1">
-<div class="row"><button id="mute">Mute</button><button id="unmute">Unmute</button></div>
-</div>
-</div>
+<section id="masterPanel" class="panel hidden">
+  <h2>Master Control Panel</h2>
+  <button id="generateCodeBtn" class="primary">Generate Connection Code</button>
+  <div id="codeArea" class="hidden">
+    <p class="muted">Mic Phone me ye 6-digit code enter karein:</p>
+    <div id="roomCode" class="code">------</div>
+  </div>
+
+  <div class="sectionTitle">
+    <div id="masterMicStatus" class="status">Mic Phone not connected</div>
+    <div class="micOrb" id="masterOrb">🎤</div>
+    <label>Incoming Mic Level <span id="masterLevelText" class="value">0%</span></label>
+    <div class="meter"><div id="masterMeter"></div></div>
+    <button id="enableSpeakerBtn" class="green" style="margin-top:12px">🔊 Enable / Resume Speaker</button>
+  </div>
+
+  <div class="sectionTitle">
+    <h2>Mic Mixer</h2>
+    <label>Mic Output Volume <span id="outVolText" class="value">100%</span></label>
+    <input id="outVol" type="range" min="0" max="1.5" step="0.01" value="1">
+
+    <label>Mic Gain / Amplifier <span id="gainText" class="value">100%</span></label>
+    <input id="gain" type="range" min="0" max="3" step="0.05" value="1">
+
+    <label>Bass <span id="bassText" class="value">0 dB</span></label>
+    <input id="bass" type="range" min="-20" max="20" step="1" value="0">
+
+    <label>Treble <span id="trebleText" class="value">0 dB</span></label>
+    <input id="treble" type="range" min="-20" max="20" step="1" value="0">
+
+    <label>Echo Mix <span id="echoText" class="value">0%</span></label>
+    <input id="echo" type="range" min="0" max="0.8" step="0.01" value="0">
+
+    <label>Delay <span id="delayText" class="value">180 ms</span></label>
+    <input id="delay" type="range" min="0.05" max="0.7" step="0.01" value="0.18">
+
+    <div class="grid2" style="margin-top:12px">
+      <button id="muteMic" class="danger">Mute Mic</button>
+      <button id="unmuteMic" class="green">Unmute Mic</button>
+    </div>
+  </div>
+
+  <div class="sectionTitle">
+    <h2>▶ YouTube Music</h2>
+    <p class="muted small">YouTube URL/Video ID direct play karega. Search ke liye Render me YOUTUBE_API_KEY add karna hota hai.</p>
+    <div class="grid2">
+      <input id="ytUrl" placeholder="Paste YouTube URL or Video ID">
+      <button id="ytLoad" class="primary">Load Video</button>
+    </div>
+    <div class="grid2" style="margin-top:10px">
+      <input id="ytSearch" placeholder="Search YouTube">
+      <button id="ytSearchBtn">Search</button>
+    </div>
+    <div id="ytSearchMsg" class="small muted"></div>
+    <div id="ytResults" class="ytResults"></div>
+    <div id="ytPlayer" style="margin-top:12px"></div>
+    <div class="grid3" style="margin-top:10px">
+      <button id="ytPlay">▶ Play</button>
+      <button id="ytPause">⏸ Pause</button>
+      <button id="ytStop">⏹ Stop</button>
+    </div>
+    <label>Music Volume <span id="musicVolText" class="value">70%</span></label>
+    <input id="musicVol" type="range" min="0" max="100" step="1" value="70">
+  </div>
+
+  <audio id="remoteAudio" autoplay playsinline></audio>
+</section>
+
+<section id="micPanel" class="panel hidden">
+  <h2>Mic Phone</h2>
+  <input id="joinCode" maxlength="6" inputmode="numeric" placeholder="Enter 6 digit Master code">
+  <div class="spacer"></div>
+  <button id="connectMicBtn" class="primary">🎤 Connect & Start Live Mic</button>
+  <p id="micStatus" class="small muted"></p>
+
+  <div id="micLiveControls" class="hidden">
+    <div class="micOrb" id="micOrb">🎙</div>
+    <label>Live Mic Level <span id="micLevelText" class="value">0%</span></label>
+    <div class="meter"><div id="micMeter"></div></div>
+
+    <label>Local Mic Gain <span id="micGainText" class="value">100%</span></label>
+    <input id="micGain" type="range" min="0" max="3" step="0.05" value="1">
+
+    <div class="grid2" style="margin-top:12px">
+      <button id="micMute" class="danger">Mute</button>
+      <button id="micUnmute" class="green">Unmute</button>
+    </div>
+  </div>
+</section>
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
-const $=id=>document.getElementById(id);
-let socket=null, pc=null, stream=null, audioCtx=null, source=null, gainNode=null, analyser=null, dest=null, pendingIce=[];
+const $ = id => document.getElementById(id);
+let socket;
+let role = null;
+let masterPC = null;
+let micPC = null;
+let pendingMasterIce = [];
+let pendingMicIce = [];
+let rawMicStream = null;
+let audioCtx = null;
+let srcNode = null, gainNode = null, bassNode = null, trebleNode = null, delayNode = null, feedbackNode = null, wetGain = null, dryGain = null, analyserNode = null, mediaDest = null;
+let ytPlayer = null, ytReady = false;
 
-function showRole(r){
-  $("masterPanel").classList.toggle("hidden",r!=="master");
-  $("micPanel").classList.toggle("hidden",r!=="mic");
+function setRole(r){
+  role=r;
+  $("masterLoginPanel").classList.toggle("hidden", r!=="master");
+  $("masterPanel").classList.add("hidden");
+  $("micPanel").classList.toggle("hidden", r!=="mic");
 }
-$("masterRole").onclick=()=>showRole("master");
-$("micRole").onclick=()=>showRole("mic");
+$("chooseMaster").onclick=()=>setRole("master");
+$("chooseMic").onclick=()=>setRole("mic");
 
-socket=io();
-socket.on("connect",()=>{$("server").textContent="✓ Server connected";$("server").className="status ok"});
-socket.on("connect_error",()=>{$("server").textContent="Server connection failed";$("server").className="status bad"});
+function initSocket(){
+  socket = io({transports:["websocket","polling"]});
+  socket.on("connect",()=>{
+    $("serverStatus").textContent="✓ Server connected";
+    $("serverStatus").className="status ok";
+  });
+  socket.on("connect_error",()=>{
+    $("serverStatus").textContent="Server connection failed";
+    $("serverStatus").className="status bad";
+  });
 
-$("login").onclick=async()=>{
-  const r=await fetch("/api/master-login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({phone:$("phone").value.trim(),password:$("pass").value})});
-  const d=await r.json();
-  if(d.ok){$("loginMsg").textContent="✓ Login successful";$("loginMsg").className="ok";$("masterRoom").classList.remove("hidden")}
-  else{$("loginMsg").textContent="Wrong number/password";$("loginMsg").className="bad"}
-};
+  socket.on("master-created", d=>{
+    $("roomCode").textContent=d.code;
+    $("codeArea").classList.remove("hidden");
+  });
 
-$("create").onclick=()=>socket.emit("master-create");
-socket.on("master-created",d=>{$("code").textContent=d.code;$("codeWrap").classList.remove("hidden")});
+  socket.on("mic-connected", async ()=>{
+    $("masterMicStatus").textContent="✓ Mic Phone connected — starting live audio…";
+    $("masterMicStatus").className="status ok";
+    $("masterOrb").classList.add("live");
+    await startMasterPeer();
+  });
 
-socket.on("mic-connected",async()=>{
-  $("masterStatus").textContent="✓ Mic connected";
-  $("masterStatus").className="ok";
-  await createMasterPC();
-  const offer=await pc.createOffer();
-  await pc.setLocalDescription(offer);
-  socket.emit("webrtc-offer",offer);
-});
-socket.on("mic-disconnected",()=>{$("masterStatus").textContent="Mic disconnected";$("masterStatus").className="bad"});
+  socket.on("mic-disconnected", ()=>{
+    $("masterMicStatus").textContent="Mic Phone disconnected";
+    $("masterMicStatus").className="status bad";
+    $("masterOrb").classList.remove("live");
+  });
 
-async function createMasterPC(){
-  if(pc) pc.close();
-  pc=new RTCPeerConnection({iceServers:[{urls:"stun:stun.l.google.com:19302"}]});
-  pc.onicecandidate=e=>{if(e.candidate)socket.emit("ice-candidate",e.candidate)};
-  pc.ontrack=e=>{
-    $("remoteAudio").srcObject=e.streams[0];
-    $("remoteAudio").volume=+$("outVol").value;
-    $("remoteAudio").play().catch(()=>{});
-  };
+  socket.on("mic-joined", async ()=>{
+    $("micStatus").textContent="✓ Connected — waiting for Master audio link…";
+    $("micStatus").className="small ok";
+    $("micLiveControls").classList.remove("hidden");
+    $("micOrb").classList.add("live");
+  });
+
+  socket.on("join-failed", d=>{
+    $("micStatus").textContent=d.message || "Join failed";
+    $("micStatus").className="small bad";
+  });
+
+  socket.on("webrtc-offer", handleOfferOnMic);
+  socket.on("webrtc-answer", handleAnswerOnMaster);
+
+  socket.on("ice-candidate", async cand=>{
+    if(role==="master"){
+      if(masterPC && masterPC.remoteDescription) { try{await masterPC.addIceCandidate(cand)}catch{} }
+      else pendingMasterIce.push(cand);
+    } else if(role==="mic"){
+      if(micPC && micPC.remoteDescription) { try{await micPC.addIceCandidate(cand)}catch{} }
+      else pendingMicIce.push(cand);
+    }
+  });
+
+  socket.on("mic-control", applyRemoteMicControl);
 }
-$("outVol").oninput=()=>{$("remoteAudio").volume=+$("outVol").value};
+initSocket();
 
-socket.on("webrtc-answer",async a=>{
-  if(!pc) return;
-  await pc.setRemoteDescription(a);
-  for(const c of pendingIce.splice(0)) try{await pc.addIceCandidate(c)}catch{}
-});
-
-socket.on("webrtc-offer",async offer=>{
-  if(!pc){
-    pc=new RTCPeerConnection({iceServers:[{urls:"stun:stun.l.google.com:19302"}]});
-    pc.onicecandidate=e=>{if(e.candidate)socket.emit("ice-candidate",e.candidate)};
-  }
-  await pc.setRemoteDescription(offer);
-  for(const c of pendingIce.splice(0)) try{await pc.addIceCandidate(c)}catch{}
-  if(dest) dest.stream.getTracks().forEach(t=>pc.addTrack(t,dest.stream));
-  const ans=await pc.createAnswer();
-  await pc.setLocalDescription(ans);
-  socket.emit("webrtc-answer",ans);
-});
-
-socket.on("ice-candidate",async c=>{
-  if(pc&&pc.remoteDescription) try{await pc.addIceCandidate(c)}catch{}
-  else pendingIce.push(c);
-});
-
-$("join").onclick=async()=>{
-  const code=$("joinCode").value.trim();
-  if(!/^\d{6}$/.test(code)){ $("micStatus").textContent="6 digit code enter karein"; return; }
+$("masterLoginBtn").onclick = async ()=>{
+  $("loginMsg").textContent="Checking…";
   try{
-    stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
-    audioCtx=new (window.AudioContext||window.webkitAudioContext)();
-    source=audioCtx.createMediaStreamSource(stream);
-    gainNode=audioCtx.createGain();
-    analyser=audioCtx.createAnalyser();
-    dest=audioCtx.createMediaStreamDestination();
-    source.connect(gainNode);
-    gainNode.connect(analyser);
-    analyser.connect(dest);
-    animateMeter();
-    socket.emit("mic-join",{code});
-    $("micStatus").textContent="Joining…";
-  }catch(e){
-    $("micStatus").textContent="Microphone permission required";
-    $("micStatus").className="bad";
+    const r=await fetch("/api/master-login",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({phone:$("masterPhone").value.trim(),password:$("masterPassword").value})
+    });
+    const d=await r.json();
+    if(d.ok){
+      $("loginMsg").textContent="✓ Login successful";
+      $("loginMsg").className="small ok";
+      $("masterPanel").classList.remove("hidden");
+    }else{
+      $("loginMsg").textContent="Wrong number or password";
+      $("loginMsg").className="small bad";
+    }
+  }catch{
+    $("loginMsg").textContent="Login server error";
+    $("loginMsg").className="small bad";
   }
 };
 
-socket.on("mic-joined",()=>{
-  $("micStatus").textContent="✓ Connected — mic live";
-  $("micStatus").className="ok";
-  $("micControls").classList.remove("hidden");
-});
-socket.on("join-failed",d=>{$("micStatus").textContent=d.message;$("micStatus").className="bad"});
+$("generateCodeBtn").onclick=()=>{
+  if(!socket.connected) return alert("Server not connected.");
+  socket.emit("master-create");
+};
 
-$("gain").oninput=()=>{if(gainNode)gainNode.gain.value=+$("gain").value};
-$("mute").onclick=()=>{if(stream)stream.getAudioTracks().forEach(t=>t.enabled=false)};
-$("unmute").onclick=()=>{if(stream)stream.getAudioTracks().forEach(t=>t.enabled=true)};
-
-function animateMeter(){
-  if(!analyser)return;
-  const a=new Uint8Array(analyser.frequencyBinCount);
-  function f(){
-    analyser.getByteFrequencyData(a);
-    let s=0; for(const v of a)s+=v;
-    $("meterBar").style.width=Math.min(100,(s/a.length)*1.3)+"%";
-    requestAnimationFrame(f);
-  }
-  f();
+async function startMasterPeer(){
+  if(masterPC) masterPC.close();
+  masterPC=new RTCPeerConnection({
+    iceServers:[
+      {urls:"stun:stun.l.google.com:19302"},
+      {urls:"stun:stun1.l.google.com:19302"}
+    ]
+  });
+  masterPC.addTransceiver("audio",{direction:"recvonly"});
+  masterPC.onicecandidate=e=>{if(e.candidate)socket.emit("ice-candidate",e.candidate)};
+  masterPC.onconnectionstatechange=()=>{
+    $("masterMicStatus").textContent="Mic connection: "+masterPC.connectionState;
+    $("masterMicStatus").className="status "+(masterPC.connectionState==="connected"?"ok":"");
+  };
+  masterPC.ontrack=e=>{
+    const audio=$("remoteAudio");
+    audio.srcObject=e.streams[0];
+    audio.volume=Math.min(1,+$("outVol").value);
+    audio.play().catch(()=>{});
+    startMasterMeter(e.streams[0]);
+  };
+  const offer=await masterPC.createOffer();
+  await masterPC.setLocalDescription(offer);
+  socket.emit("webrtc-offer",offer);
 }
+
+async function handleAnswerOnMaster(answer){
+  if(!masterPC) return;
+  await masterPC.setRemoteDescription(answer);
+  for(const c of pendingMasterIce.splice(0)){try{await masterPC.addIceCandidate(c)}catch{}}
+}
+
+$("enableSpeakerBtn").onclick=async()=>{
+  try{
+    if($("remoteAudio").srcObject) await $("remoteAudio").play();
+    $("masterMicStatus").textContent="✓ Speaker enabled";
+    $("masterMicStatus").className="status ok";
+  }catch(e){
+    $("masterMicStatus").textContent="Tap again / check media volume";
+  }
+};
+
+$("connectMicBtn").onclick=async()=>{
+  const code=$("joinCode").value.trim();
+  if(!/^\d{6}$/.test(code)) return alert("6 digit code enter karein.");
+  try{
+    await setupMicAudio();
+    socket.emit("mic-join",{code});
+    $("micStatus").textContent="Connecting…";
+  }catch(e){
+    $("micStatus").textContent="Microphone permission allow karein: "+(e.message||"");
+    $("micStatus").className="small bad";
+  }
+};
+
+async function setupMicAudio(){
+  if(rawMicStream) rawMicStream.getTracks().forEach(t=>t.stop());
+  rawMicStream=await navigator.mediaDevices.getUserMedia({
+    audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false},
+    video:false
+  });
+  audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+  await audioCtx.resume();
+
+  srcNode=audioCtx.createMediaStreamSource(rawMicStream);
+  gainNode=audioCtx.createGain();
+  bassNode=audioCtx.createBiquadFilter(); bassNode.type="lowshelf"; bassNode.frequency.value=180;
+  trebleNode=audioCtx.createBiquadFilter(); trebleNode.type="highshelf"; trebleNode.frequency.value=3500;
+  delayNode=audioCtx.createDelay(1.0);
+  feedbackNode=audioCtx.createGain();
+  wetGain=audioCtx.createGain();
+  dryGain=audioCtx.createGain();
+  analyserNode=audioCtx.createAnalyser();
+  analyserNode.fftSize=256;
+  mediaDest=audioCtx.createMediaStreamDestination();
+
+  gainNode.gain.value=+$("micGain").value;
+  bassNode.gain.value=0; trebleNode.gain.value=0;
+  delayNode.delayTime.value=.18; feedbackNode.gain.value=.28; wetGain.gain.value=0; dryGain.gain.value=1;
+
+  srcNode.connect(gainNode);
+  gainNode.connect(bassNode);
+  bassNode.connect(trebleNode);
+
+  trebleNode.connect(dryGain);
+  dryGain.connect(analyserNode);
+
+  trebleNode.connect(delayNode);
+  delayNode.connect(wetGain);
+  wetGain.connect(analyserNode);
+  delayNode.connect(feedbackNode);
+  feedbackNode.connect(delayNode);
+
+  analyserNode.connect(mediaDest);
+  animateMicMeter();
+}
+
+async function handleOfferOnMic(offer){
+  if(!mediaDest){
+    $("micStatus").textContent="Mic audio not started. Tap Connect & Start Live Mic again.";
+    return;
+  }
+  if(micPC) micPC.close();
+  micPC=new RTCPeerConnection({
+    iceServers:[
+      {urls:"stun:stun.l.google.com:19302"},
+      {urls:"stun:stun1.l.google.com:19302"}
+    ]
+  });
+  micPC.onicecandidate=e=>{if(e.candidate)socket.emit("ice-candidate",e.candidate)};
+  micPC.onconnectionstatechange=()=>{
+    $("micStatus").textContent="Live audio: "+micPC.connectionState;
+    $("micStatus").className="small "+(micPC.connectionState==="connected"?"ok":"");
+  };
+  mediaDest.stream.getAudioTracks().forEach(track=>micPC.addTrack(track,mediaDest.stream));
+  await micPC.setRemoteDescription(offer);
+  for(const c of pendingMicIce.splice(0)){try{await micPC.addIceCandidate(c)}catch{}}
+  const answer=await micPC.createAnswer();
+  await micPC.setLocalDescription(answer);
+  socket.emit("webrtc-answer",answer);
+}
+
+function animateMicMeter(){
+  const arr=new Uint8Array(analyserNode.frequencyBinCount);
+  const loop=()=>{
+    if(!analyserNode)return;
+    analyserNode.getByteTimeDomainData(arr);
+    let sum=0;
+    for(const v of arr){const x=(v-128)/128;sum+=x*x}
+    const rms=Math.sqrt(sum/arr.length);
+    const pct=Math.min(100,Math.round(rms*300));
+    $("micMeter").style.width=pct+"%";
+    $("micLevelText").textContent=pct+"%";
+    requestAnimationFrame(loop);
+  };
+  loop();
+}
+
+function startMasterMeter(stream){
+  try{
+    const ctx=new (window.AudioContext||window.webkitAudioContext)();
+    const src=ctx.createMediaStreamSource(stream);
+    const an=ctx.createAnalyser(); an.fftSize=256; src.connect(an);
+    const arr=new Uint8Array(an.frequencyBinCount);
+    const loop=()=>{
+      an.getByteTimeDomainData(arr);
+      let sum=0; for(const v of arr){const x=(v-128)/128;sum+=x*x}
+      const pct=Math.min(100,Math.round(Math.sqrt(sum/arr.length)*300));
+      $("masterMeter").style.width=pct+"%"; $("masterLevelText").textContent=pct+"%";
+      requestAnimationFrame(loop);
+    }; loop();
+  }catch{}
+}
+
+function sendControl(type,value){ if(socket?.connected) socket.emit("mic-control",{type,value}); }
+function applyRemoteMicControl({type,value}={}){
+  if(type==="gain" && gainNode) gainNode.gain.value=+value;
+  if(type==="bass" && bassNode) bassNode.gain.value=+value;
+  if(type==="treble" && trebleNode) trebleNode.gain.value=+value;
+  if(type==="echo" && wetGain) wetGain.gain.value=+value;
+  if(type==="delay" && delayNode) delayNode.delayTime.value=+value;
+  if(type==="mute" && rawMicStream) rawMicStream.getAudioTracks().forEach(t=>t.enabled=!value);
+}
+
+$("micGain").oninput=()=>{
+  const v=+$("micGain").value;
+  if(gainNode)gainNode.gain.value=v;
+  $("micGainText").textContent=Math.round(v*100)+"%";
+};
+$("micMute").onclick=()=>{if(rawMicStream)rawMicStream.getAudioTracks().forEach(t=>t.enabled=false)};
+$("micUnmute").onclick=()=>{if(rawMicStream)rawMicStream.getAudioTracks().forEach(t=>t.enabled=true)};
+
+$("outVol").oninput=()=>{
+  const v=+$("outVol").value;
+  $("outVolText").textContent=Math.round(v*100)+"%";
+  $("remoteAudio").volume=Math.min(1,v);
+};
+$("gain").oninput=()=>{const v=+$("gain").value;$("gainText").textContent=Math.round(v*100)+"%";sendControl("gain",v)};
+$("bass").oninput=()=>{const v=+$("bass").value;$("bassText").textContent=v+" dB";sendControl("bass",v)};
+$("treble").oninput=()=>{const v=+$("treble").value;$("trebleText").textContent=v+" dB";sendControl("treble",v)};
+$("echo").oninput=()=>{const v=+$("echo").value;$("echoText").textContent=Math.round(v*100)+"%";sendControl("echo",v)};
+$("delay").oninput=()=>{const v=+$("delay").value;$("delayText").textContent=Math.round(v*1000)+" ms";sendControl("delay",v)};
+$("muteMic").onclick=()=>sendControl("mute",true);
+$("unmuteMic").onclick=()=>sendControl("mute",false);
+
+// YouTube
+window.onYouTubeIframeAPIReady=()=>{
+  ytPlayer=new YT.Player("ytPlayer",{
+    height:"320",width:"100%",videoId:"",
+    playerVars:{playsinline:1},
+    events:{onReady:()=>{ytReady=true;ytPlayer.setVolume(+$("musicVol").value)}}
+  });
+};
+const ytScript=document.createElement("script");
+ytScript.src="https://www.youtube.com/iframe_api";
+document.head.appendChild(ytScript);
+
+function extractVideoId(s){
+  s=String(s||"").trim();
+  if(/^[A-Za-z0-9_-]{11}$/.test(s)) return s;
+  try{
+    const u=new URL(s);
+    if(u.hostname.includes("youtu.be")) return u.pathname.split("/").filter(Boolean)[0]||"";
+    if(u.searchParams.get("v")) return u.searchParams.get("v");
+    const m=u.pathname.match(/\/(?:shorts|embed)\/([A-Za-z0-9_-]{11})/);
+    return m?m[1]:"";
+  }catch{return ""}
+}
+$("ytLoad").onclick=()=>{
+  const id=extractVideoId($("ytUrl").value);
+  if(!id)return alert("Valid YouTube URL ya 11-character Video ID enter karein.");
+  if(!ytReady)return alert("YouTube player loading… 2 second baad try karein.");
+  ytPlayer.loadVideoById(id);
+};
+$("ytPlay").onclick=()=>ytReady&&ytPlayer.playVideo();
+$("ytPause").onclick=()=>ytReady&&ytPlayer.pauseVideo();
+$("ytStop").onclick=()=>ytReady&&ytPlayer.stopVideo();
+$("musicVol").oninput=()=>{const v=+$("musicVol").value;$("musicVolText").textContent=v+"%";if(ytReady)ytPlayer.setVolume(v)};
+
+$("ytSearchBtn").onclick=async()=>{
+  const q=$("ytSearch").value.trim();
+  if(!q)return;
+  $("ytSearchMsg").textContent="Searching…";
+  $("ytResults").innerHTML="";
+  try{
+    const r=await fetch("/api/youtube-search?q="+encodeURIComponent(q));
+    const d=await r.json();
+    if(!r.ok) throw new Error(d.error||"Search failed");
+    $("ytSearchMsg").textContent=d.items.length+" videos found";
+    d.items.forEach(item=>{
+      const el=document.createElement("div"); el.className="ytItem";
+      el.innerHTML=`<img src="${item.thumb}" alt=""><div><b>${item.title}</b><br><span class="muted">${item.channel}</span></div>`;
+      el.onclick=()=>{if(ytReady)ytPlayer.loadVideoById(item.id)};
+      $("ytResults").appendChild(el);
+    });
+  }catch(e){
+    $("ytSearchMsg").textContent=e.message;
+    $("ytSearchMsg").className="small bad";
+  }
+};
 </script>
-</main></body></html>
+</main>
+</body>
+</html>
