@@ -1,45 +1,70 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Wireless Mic Pro</title>
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Wireless Mic Pro</title>
 <style>
 body{margin:0;background:#07101d;color:#fff;font-family:Arial,sans-serif}main{max-width:900px;margin:auto;padding:14px}.card{background:#101d31;border:1px solid #2d4d73;border-radius:18px;padding:15px;margin:12px 0}input,button{width:100%;padding:12px;margin:6px 0;border-radius:10px;border:1px solid #385b84;background:#091728;color:#fff;font-size:16px;box-sizing:border-box}button{font-weight:bold}.primary{background:#78adff;color:#07101d}.hidden{display:none}.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.muted{color:#aebed3}.ok{color:#51e08a}.bad{color:#ff7184}label{display:flex;justify-content:space-between;margin-top:12px}.meter{height:16px;background:#07111e;border-radius:10px;overflow:hidden}.meter div{height:100%;width:0;background:linear-gradient(90deg,#51e08a,#e3e964,#ff7d7d)}#results{display:grid;gap:8px}.item{display:flex;gap:8px;align-items:center;background:#091728;padding:8px;border-radius:10px;cursor:pointer}.item img{width:95px;border-radius:8px}@media(max-width:650px){.row{grid-template-columns:1fr}}
 </style></head><body><main>
-<h1>🎙 Wireless Mic Pro</h1><p class="muted">Master Phone Mic + Bluetooth/phone speaker + Music</p>
+<h1>🎙 Wireless Mic Pro</h1>
 <div id="login" class="card"><h2>Master Login</h2><input id="phone" placeholder="Master number"><input id="pass" type="password" placeholder="Password"><button id="loginBtn" class="primary">Login</button><div id="msg"></div></div>
 
 <div id="panel" class="hidden">
-<div class="card"><h2>Master Phone Mic</h2><div id="micStatus">Mic stopped</div><div class="row"><button id="startMic" class="primary">Start Live Mic</button><button id="stopMic">Stop Mic</button></div><p class="muted">Bluetooth speaker phone Settings se connect karein.</p><label>Level <span id="levelText">0%</span></label><div class="meter"><div id="meter"></div></div>
-<label>Mic Gain <span id="gainT">100%</span></label><input id="gain" type="range" min="0" max="4" step=".05" value="1">
-<label>Mic Volume <span id="volT">80%</span></label><input id="vol" type="range" min="0" max="1.5" step=".01" value=".8">
-<label>Bass <span id="bassT">0 dB</span></label><input id="bass" type="range" min="-20" max="20" value="0">
-<label>Mid <span id="midT">0 dB</span></label><input id="mid" type="range" min="-20" max="20" value="0">
-<label>Treble <span id="trebleT">0 dB</span></label><input id="treble" type="range" min="-20" max="20" value="0">
-<label>Echo <span id="echoT">0%</span></label><input id="echo" type="range" min="0" max=".7" step=".01" value="0">
-<label>Delay <span id="delayT">180 ms</span></label><input id="delay" type="range" min=".05" max=".8" step=".01" value=".18">
-<div class="row"><button id="mute">Mute Mic</button><button id="unmute">Unmute Mic</button></div></div>
+<div class="card"><h2>Master Phone Mic</h2><div id="micStatus">Mic stopped</div><div class="row"><button id="startMic" class="primary">Start Live Mic</button><button id="stopMic">Stop Mic</button></div>
+<label>Live Level <span id="levelText">0%</span></label><div class="meter"><div id="meter"></div></div>
+<label>Mic Gain <span id="gainT">120%</span></label><input id="gain" type="range" min="0" max="3" step=".05" value="1.2">
+<label>Mic Volume <span id="volT">75%</span></label><input id="vol" type="range" min="0" max="1.2" step=".01" value=".75">
+<label>Noise Gate <span id="gateT">2%</span></label><input id="gate" type="range" min="0" max=".12" step=".005" value=".02">
+<label>Bass <span id="bassT">0 dB</span></label><input id="bass" type="range" min="-15" max="15" value="0">
+<label>Mid <span id="midT">0 dB</span></label><input id="mid" type="range" min="-15" max="15" value="0">
+<label>Treble <span id="trebleT">0 dB</span></label><input id="treble" type="range" min="-15" max="15" value="0">
+<label>Echo <span id="echoT">0%</span></label><input id="echo" type="range" min="0" max=".45" step=".01" value="0">
+<div class="row"><button id="mute">Mute Mic</button><button id="unmute">Unmute Mic</button></div>
+<p class="muted">Noise suppression, echo cancellation aur auto gain ON rakhe gaye hain.</p></div>
 
-<div class="card"><h2>🎵 Music Mixer</h2><p class="muted">Local music file par full EQ. YouTube par playback + volume.</p><input id="file" type="file" accept="audio/*"><audio id="audio" controls style="width:100%"></audio>
-<label>Music Volume <span id="mvolT">70%</span></label><input id="mvol" type="range" min="0" max="1.5" step=".01" value=".7">
-<label>Music Bass <span id="mbassT">0 dB</span></label><input id="mbass" type="range" min="-20" max="20" value="0">
-<label>Music Mid <span id="mmidT">0 dB</span></label><input id="mmid" type="range" min="-20" max="20" value="0">
-<label>Music Treble <span id="mtrebleT">0 dB</span></label><input id="mtreble" type="range" min="-20" max="20" value="0"></div>
-
-<div class="card"><h2>▶ YouTube</h2><div class="row"><input id="search" placeholder="Search YouTube"><button id="searchBtn">Search</button></div><div id="searchMsg" class="muted"></div><div id="results"></div><div id="ytPlayer" style="margin-top:10px;min-height:220px"></div><div class="row"><button id="ytPlay">Play</button><button id="ytPause">Pause</button></div><label>YouTube Volume <span id="ytvT">60%</span></label><input id="ytv" type="range" min="0" max="100" value="60"></div>
+<div class="card"><h2>▶ YouTube Mixer</h2>
+<div class="row"><input id="search" placeholder="Search YouTube"><button id="searchBtn">Search</button></div><div id="searchMsg" class="muted"></div><div id="results"></div>
+<div id="ytPlayer" style="margin-top:10px;min-height:220px"></div>
+<div class="row"><button id="ytPlay">Play</button><button id="ytPause">Pause</button></div>
+<label>Music Volume <span id="ytvT">60%</span></label><input id="ytv" type="range" min="0" max="100" value="60">
+<label>Mic / Music Balance <span id="balanceT">50%</span></label><input id="balance" type="range" min="0" max="100" value="50">
+<label>Auto Ducking <span id="duckT">ON</span></label><input id="duck" type="range" min="0" max="1" step="1" value="1">
+<label>Ducking Level <span id="duckLevelT">30%</span></label><input id="duckLevel" type="range" min="10" max="80" value="30">
+<div class="row"><button id="ytMute">Mute Music</button><button id="ytUnmute">Unmute Music</button></div>
+<p class="muted">YouTube raw audio browser ko nahi deta, isliye Bass/Mid/Treble YouTube par direct apply nahi hota. Is mixer me volume, balance aur auto-ducking kaam karega.</p></div>
 </div>
 
 <script>
-const $=x=>document.getElementById(x);let ctx,stream,src,g,b,m,t,d,fb,wet,dry,master,an,raf;let mctx,msrc,mv,mb,mm,mt;let yp,yr=false;
+const $=x=>document.getElementById(x);let ctx,stream,src,hp,g,b,m,t,comp,master,an,gateGain,wet,dly,fb,raf;let yp,yr=false,lastYtVol=60;
 loginBtn.onclick=async()=>{let r=await fetch('/api/master-login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:phone.value.trim(),password:pass.value})}),x=await r.json();if(x.ok){panel.classList.remove('hidden');msg.textContent='✓ Login successful';msg.className='ok'}else{msg.textContent='Wrong login';msg.className='bad'}};
+
 async function stop(){if(raf)cancelAnimationFrame(raf);if(stream)stream.getTracks().forEach(x=>x.stop());if(ctx)try{await ctx.close()}catch{}ctx=null;micStatus.textContent='Mic stopped'}
-async function start(){await stop();stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});ctx=new AudioContext({latencyHint:'interactive'});await ctx.resume();src=ctx.createMediaStreamSource(stream);g=ctx.createGain();b=ctx.createBiquadFilter();b.type='lowshelf';b.frequency.value=170;m=ctx.createBiquadFilter();m.type='peaking';m.frequency.value=1100;m.Q.value=.9;t=ctx.createBiquadFilter();t.type='highshelf';t.frequency.value=3800;d=ctx.createDelay(1);fb=ctx.createGain();wet=ctx.createGain();dry=ctx.createGain();master=ctx.createGain();an=ctx.createAnalyser();an.fftSize=256;src.connect(g);g.connect(b);b.connect(m);m.connect(t);t.connect(dry);dry.connect(master);t.connect(d);d.connect(wet);wet.connect(master);d.connect(fb);fb.connect(d);master.connect(an);an.connect(ctx.destination);apply();micStatus.textContent='✓ Master mic live';micStatus.className='ok';meterLoop()}
-function apply(){if(!ctx)return;g.gain.value=+gain.value;master.gain.value=+vol.value;b.gain.value=+bass.value;m.gain.value=+mid.value;t.gain.value=+treble.value;wet.gain.value=+echo.value;d.delayTime.value=+delay.value;fb.gain.value=.28}
+async function start(){
+ await stop();
+ stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true,channelCount:1},video:false});
+ ctx=new AudioContext({latencyHint:'interactive'});await ctx.resume();src=ctx.createMediaStreamSource(stream);
+ hp=ctx.createBiquadFilter();hp.type='highpass';hp.frequency.value=100;
+ g=ctx.createGain();gateGain=ctx.createGain();
+ b=ctx.createBiquadFilter();b.type='lowshelf';b.frequency.value=170;
+ m=ctx.createBiquadFilter();m.type='peaking';m.frequency.value=1100;m.Q.value=.9;
+ t=ctx.createBiquadFilter();t.type='highshelf';t.frequency.value=3800;
+ comp=ctx.createDynamicsCompressor();comp.threshold.value=-28;comp.knee.value=18;comp.ratio.value=4;comp.attack.value=.004;comp.release.value=.18;
+ dly=ctx.createDelay(.8);fb=ctx.createGain();wet=ctx.createGain();master=ctx.createGain();an=ctx.createAnalyser();an.fftSize=256;
+ src.connect(hp);hp.connect(g);g.connect(gateGain);gateGain.connect(b);b.connect(m);m.connect(t);t.connect(comp);comp.connect(master);
+ t.connect(dly);dly.connect(wet);wet.connect(master);dly.connect(fb);fb.connect(dly);fb.gain.value=.22;
+ master.connect(an);an.connect(ctx.destination);apply();micStatus.textContent='✓ Master mic live';micStatus.className='ok';meterLoop()
+}
+function apply(){if(!ctx)return;g.gain.value=+gain.value;master.gain.value=+vol.value;b.gain.value=+bass.value;m.gain.value=+mid.value;t.gain.value=+treble.value;wet.gain.value=+echo.value}
 startMic.onclick=()=>start().catch(e=>{micStatus.textContent='Mic permission/start failed';micStatus.className='bad'});stopMic.onclick=stop;mute.onclick=()=>{if(master)master.gain.value=0};unmute.onclick=apply;
-[['gain','gainT',v=>Math.round(v*100)+'%'],['vol','volT',v=>Math.round(v*100)+'%'],['bass','bassT',v=>v+' dB'],['mid','midT',v=>v+' dB'],['treble','trebleT',v=>v+' dB'],['echo','echoT',v=>Math.round(v*100)+'%'],['delay','delayT',v=>Math.round(v*1000)+' ms']].forEach(([i,o,f])=>$(i).oninput=()=>{$(o).textContent=f($(i).value);apply()});
-function meterLoop(){if(!an)return;let a=new Uint8Array(an.frequencyBinCount);an.getByteTimeDomainData(a);let s=0;a.forEach(v=>{let x=(v-128)/128;s+=x*x});let p=Math.min(100,Math.round(Math.sqrt(s/a.length)*320));meter.style.width=p+'%';levelText.textContent=p+'%';raf=requestAnimationFrame(meterLoop)}
+[['gain','gainT',v=>Math.round(v*100)+'%'],['vol','volT',v=>Math.round(v*100)+'%'],['gate','gateT',v=>Math.round(v*100)+'%'],['bass','bassT',v=>v+' dB'],['mid','midT',v=>v+' dB'],['treble','trebleT',v=>v+' dB'],['echo','echoT',v=>Math.round(v*100)+'%']].forEach(([i,o,f])=>$(i).oninput=()=>{$(o).textContent=f($(i).value);apply()});
 
-file.onchange=e=>{let f=e.target.files[0];if(!f)return;audio.src=URL.createObjectURL(f);if(!mctx){mctx=new AudioContext();msrc=mctx.createMediaElementSource(audio);mb=mctx.createBiquadFilter();mb.type='lowshelf';mb.frequency.value=170;mm=mctx.createBiquadFilter();mm.type='peaking';mm.frequency.value=1100;mt=mctx.createBiquadFilter();mt.type='highshelf';mt.frequency.value=3800;mv=mctx.createGain();msrc.connect(mb);mb.connect(mm);mm.connect(mt);mt.connect(mv);mv.connect(mctx.destination)}mapply()};
-function mapply(){if(!mctx)return;mv.gain.value=+mvol.value;mb.gain.value=+mbass.value;mm.gain.value=+mmid.value;mt.gain.value=+mtreble.value}
-[['mvol','mvolT',v=>Math.round(v*100)+'%'],['mbass','mbassT',v=>v+' dB'],['mmid','mmidT',v=>v+' dB'],['mtreble','mtrebleT',v=>v+' dB']].forEach(([i,o,f])=>$(i).oninput=()=>{$(o).textContent=f($(i).value);mapply()});
+function meterLoop(){if(!an)return;let a=new Uint8Array(an.frequencyBinCount);an.getByteTimeDomainData(a);let s=0;a.forEach(v=>{let x=(v-128)/128;s+=x*x});let rms=Math.sqrt(s/a.length),p=Math.min(100,Math.round(rms*320));meter.style.width=p+'%';levelText.textContent=p+'%';
+ if(gateGain){let th=+gate.value;gateGain.gain.setTargetAtTime(rms<th?0:1,ctx.currentTime,.015)}
+ updateDuck(rms);raf=requestAnimationFrame(meterLoop)}
 
-window.onYouTubeIframeAPIReady=()=>{yp=new YT.Player('ytPlayer',{height:'315',width:'100%',videoId:'',playerVars:{playsinline:1},events:{onReady:()=>{yr=true;yp.setVolume(+ytv.value)}}})};let ys=document.createElement('script');ys.src='https://www.youtube.com/iframe_api';document.head.appendChild(ys);
+window.onYouTubeIframeAPIReady=()=>{yp=new YT.Player('ytPlayer',{height:'315',width:'100%',videoId:'',playerVars:{playsinline:1},events:{onReady:()=>{yr=true;setYtVol()}}})};let ys=document.createElement('script');ys.src='https://www.youtube.com/iframe_api';document.head.appendChild(ys);
+
+function setYtVol(){if(!yr)return;let base=+ytv.value,bal=+balance.value;let musicFactor=(100-bal)/50;let v=Math.max(0,Math.min(100,base*musicFactor));lastYtVol=v;yp.setVolume(v)}
+function updateDuck(rms){if(!yr||duck.value!=='1')return;let th=Math.max(.015,+gate.value);if(rms>th){let ducked=Math.max(0,lastYtVol*(+duckLevel.value/100));yp.setVolume(ducked)}else{yp.setVolume(lastYtVol)}}
+ytv.oninput=()=>{ytvT.textContent=ytv.value+'%';setYtVol()};balance.oninput=()=>{balanceT.textContent=balance.value+'%';setYtVol()};duck.oninput=()=>{duckT.textContent=duck.value==='1'?'ON':'OFF';setYtVol()};duckLevel.oninput=()=>duckLevelT.textContent=duckLevel.value+'%';
+ytMute.onclick=()=>yr&&yp.mute();ytUnmute.onclick=()=>{if(yr){yp.unMute();setYtVol()}};ytPlay.onclick=()=>yr&&yp.playVideo();ytPause.onclick=()=>yr&&yp.pauseVideo();
+
 searchBtn.onclick=async()=>{let q=search.value.trim();if(!q)return;searchMsg.textContent='Searching…';results.innerHTML='';try{let r=await fetch('/api/youtube-search?q='+encodeURIComponent(q)),x=await r.json();if(!r.ok)throw Error(x.error||'Search failed');searchMsg.textContent=x.items.length+' videos found';x.items.forEach(i=>{let e=document.createElement('div');e.className='item';e.innerHTML=`<img src="${i.thumb}"><div><b>${i.title}</b><br>${i.channel}</div>`;e.onclick=()=>yr&&yp.loadVideoById(i.id);results.appendChild(e)})}catch(e){searchMsg.textContent=e.message;searchMsg.className='bad'}};
-ytPlay.onclick=()=>yr&&yp.playVideo();ytPause.onclick=()=>yr&&yp.pauseVideo();ytv.oninput=()=>{ytvT.textContent=ytv.value+'%';if(yr)yp.setVolume(+ytv.value)};
 </script></main></body></html>

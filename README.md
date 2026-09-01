@@ -1,1 +1,1 @@
-Master-only version. Separate Mic Phone and Generate Code removed. Existing Render YOUTUBE_API_KEY is used.
+Master-only noise-reduced mic + YouTube volume/balance/auto-ducking mixer. Keep YOUTUBE_API_KEY in Render.
