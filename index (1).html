@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Wireless Mic Pro</title>
+<style>
+:root{
+  --bg:#020813;
+  --bg2:#06111f;
+  --panel:#07192b;
+  --panel2:#0b2036;
+  --line:#16456f;
+  --line2:#1a5e91;
+  --text:#f3f8ff;
+  --muted:#9cb5cf;
+  --green:#28ef84;
+  --blue:#149dff;
+  --cyan:#27d7ff;
+  --red:#ff555f;
+  --yellow:#ffd45d;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:
+radial-gradient(circle at 50% -20%,#0b2c4f 0,#03101d 30%,#020813 68%);
+color:var(--text);font-family:Inter,system-ui,Segoe UI,Arial,sans-serif;min-height:100%}
+button,input,select{font:inherit}
+.hidden{display:none!important}
+body{overflow-x:hidden}
+
+.login-screen{
+  min-height:100vh;display:grid;place-items:center;padding:22px
+}
+.login-card{
+  width:min(460px,100%);padding:28px;border-radius:26px;
+  background:linear-gradient(180deg,#0b1b30,#06121f);
+  border:1px solid #23517c;box-shadow:0 30px 100px #000a
+}
+.brand{display:flex;align-items:center;gap:14px}
+.brand-icon{font-size:48px;filter:drop-shadow(0 0 13px #1ce987)}
+.brand-title{font-size:33px;font-weight:900;line-height:1}
+.brand-title span{background:linear-gradient(90deg,#fff,#3bd8ff,#2d86ff);-webkit-background-clip:text;color:transparent}
+.brand-sub{margin-top:7px;color:#bad1e8}
+.login-card h2{font-size:24px;margin:28px 0 12px}
+.text-input,.select{
+  width:100%;border:1px solid #315b82;background:#061322;color:#fff;
+  border-radius:12px;padding:14px 15px;outline:none
+}
+.text-input:focus,.select:focus{border-color:#168cff;box-shadow:0 0 0 3px #168cff22}
+.login-card .text-input{margin-top:10px}
+.btn{
+  border:1px solid #31577b;background:#0c1f35;color:#fff;border-radius:13px;
+  padding:13px 16px;font-weight:800;cursor:pointer;transition:.15s
+}
+.btn:active{transform:scale(.98)}
+.btn.green{background:linear-gradient(90deg,#1ee578,#43f29c);color:#052413;border:0}
+.login-card .btn{width:100%;margin-top:14px}
+.login-msg{min-height:22px;margin-top:10px;color:#ff9ba2}
+
+.app{min-height:100vh}
+.topbar{
+  min-height:92px;border-bottom:1px solid #153652;
+  background:linear-gradient(180deg,#061425ee,#04101ddd);
+  backdrop-filter:blur(12px);position:sticky;top:0;z-index:5
+}
+.topbar-inner{
+  max-width:1320px;margin:auto;display:flex;align-items:center;justify-content:space-between;
+  gap:16px;padding:17px 22px
+}
+.top-actions{display:flex;align-items:center;gap:10px}
+.bt-status{
+  border:1px solid #126a48;background:#073421;color:#2bff91;
+  border-radius:14px;padding:12px 16px;font-weight:900;white-space:nowrap
+}
+.container{max-width:1320px;margin:auto;padding:18px 22px 26px}
+.dashboard{
+  display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px
+}
+.panel{
+  background:linear-gradient(180deg,#081c31,#061626);
+  border:1px solid #16456f;border-radius:22px;padding:22px;
+  box-shadow:inset 0 1px #ffffff08,0 8px 28px #0004
+}
+.panel-title{font-size:25px;font-weight:900;display:flex;align-items:center;gap:9px;margin:0 0 18px}
+.live-pill{
+  font-size:12px;background:#50161b;color:#ff7077;border-radius:999px;padding:5px 9px;
+  border:1px solid #84262e
+}
+.mic-wrap{display:grid;place-items:center;min-height:310px}
+.mic-visual{
+  width:245px;height:245px;border-radius:50%;display:grid;place-items:center;
+  font-size:112px;background:radial-gradient(circle,#112a3d,#081522 65%);
+  border:8px solid #23465d;position:relative;transition:.2s
+}
+.mic-visual.on{
+  border-color:var(--green);box-shadow:0 0 35px #22ef8455,0 0 90px #22ef8422,inset 0 0 32px #22ef8422;
+  animation:micPulse 1.2s infinite
+}
+.mic-visual.on:before,.mic-visual.on:after{
+  content:"";position:absolute;border:2px solid #28ef8477;border-radius:50%;
+  inset:-20px;animation:ring 1.3s infinite
+}
+.mic-visual.on:after{animation-delay:.6s}
+@keyframes micPulse{50%{transform:scale(1.02)}}
+@keyframes ring{from{transform:scale(.92);opacity:.8}to{transform:scale(1.18);opacity:0}}
+.mic-state{text-align:center;font-size:31px;font-weight:900;color:#8193a8;margin-top:8px}
+.mic-state.on{color:var(--green)}
+.listening{text-align:center;color:#3bd9ff;margin-top:4px;min-height:22px}
+.level-row{display:flex;align-items:center;gap:12px;margin-top:16px}
+.wave-bars{display:flex;align-items:end;gap:4px;height:32px;min-width:120px;justify-content:center}
+.wave-bars span{width:5px;border-radius:4px;background:#21e77d;height:7px;transition:.06s}
+.meter{flex:1;height:18px;border-radius:999px;background:#03111d;border:1px solid #244864;overflow:hidden}
+.meter-fill{height:100%;width:0;background:linear-gradient(90deg,#21e77e,#ffd65f,#ff5362);transition:width .05s}
+.dual-btn{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:17px}
+.dual-btn .btn{font-size:18px;min-height:56px}
+.btn.off{background:#10243a}
+.field{margin-top:17px}
+.field label{display:block;color:#c1d4e8;font-weight:800;margin-bottom:8px}
+.select{min-height:50px}
+
+.output-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.output-card{
+  min-height:150px;border:1px solid #214c72;border-radius:17px;background:#0a1d32;color:#fff;
+  display:grid;place-items:center;text-align:center;padding:12px;font-weight:900;cursor:pointer
+}
+.output-card .ico{font-size:42px;margin-bottom:8px}
+.output-card.active{border:2px solid var(--blue);box-shadow:0 0 24px #169cff2a;background:#0a213b}
+.output-card small{display:block;color:#9fb8cf;font-weight:600;margin-top:5px}
+.note{color:#9fb5cb;font-size:13px;line-height:1.45;margin-top:12px}
+
+.yt-search{display:grid;grid-template-columns:1fr auto;gap:10px}
+.yt-search .text-input{margin:0}
+.yt-search .btn{background:#0e82ff;border-color:#0e82ff}
+.video-box{
+  aspect-ratio:16/9;background:#000;border:1px solid #203e5b;border-radius:17px;overflow:hidden;margin-top:15px
+}
+.video-box iframe{width:100%;height:100%;border:0}
+.transport{display:flex;justify-content:center;gap:12px;margin-top:14px}
+.transport .btn{min-width:90px}
+.slider-row{margin-top:16px}
+.slider-head{display:flex;justify-content:space-between;color:#c2d3e6;font-weight:800;margin-bottom:8px}
+input[type=range]{width:100%;accent-color:#168cff}
+
+.mixer{grid-column:1/-1}
+.mixer-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px}
+.mix-card{
+  background:#0a1c30;border:1px solid #214a70;border-radius:16px;padding:16px
+}
+.mix-card .name{font-weight:900;margin-bottom:14px}
+.mix-card .value{text-align:center;margin-top:8px;color:#d6e7fa}
+.connection-card .btn{margin-top:14px;width:100%}
+.device-msg{margin-top:12px;color:#47d8ff;min-height:22px}
+
+.statusbar{
+  margin-top:18px;border-top:1px solid #173651;padding:17px 2px 2px;
+  color:#b3c7db;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap
+}
+.ok{color:#2bef8a}
+.footer-version{color:#8aa4bd}
+
+@media(max-width:980px){
+  .dashboard{grid-template-columns:1fr}
+  .mixer{grid-column:auto}
+  .mixer-grid{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:650px){
+  .topbar-inner{padding:13px 14px;align-items:flex-start}
+  .container{padding:13px}
+  .panel{padding:17px;border-radius:18px}
+  .brand-title{font-size:24px}
+  .brand-icon{font-size:38px}
+  .brand-sub{font-size:13px}
+  .top-actions{flex-direction:column;align-items:stretch}
+  .bt-status{font-size:13px;padding:9px 10px}
+  .output-cards{grid-template-columns:1fr}
+  .mixer-grid{grid-template-columns:1fr}
+  .mic-visual{width:205px;height:205px;font-size:92px}
+  .mic-wrap{min-height:260px}
+  .panel-title{font-size:21px}
+  .dual-btn{grid-template-columns:1fr}
+  .yt-search{grid-template-columns:1fr}
+}
+
+/* YouTube search result list */
+.yt-results{
+  margin-top:14px;
+  display:none;
+  max-height:330px;
+  overflow:auto;
+  border:1px solid #16456f;
+  border-radius:14px;
+  background:#04111e;
+}
+.yt-result{
+  display:grid;
+  grid-template-columns:120px minmax(0,1fr);
+  gap:12px;
+  padding:10px;
+  border-bottom:1px solid #123754;
+  cursor:pointer;
+  transition:.15s;
+}
+.yt-result:last-child{border-bottom:0}
+.yt-result:hover{background:#0a2036}
+.yt-result img{
+  width:120px;height:68px;object-fit:cover;border-radius:9px;background:#000
+}
+.yt-result-title{
+  font-weight:800;
+  line-height:1.25;
+  margin-bottom:7px;
+  overflow:hidden;
+  display:-webkit-box;
+  -webkit-line-clamp:2;
+  -webkit-box-orient:vertical
+}
+.yt-result-channel{color:#9cb5cf;font-size:13px}
+.yt-msg{padding:14px;color:#9cb5cf}
+@media(max-width:560px){
+  .yt-result{grid-template-columns:96px minmax(0,1fr)}
+  .yt-result img{width:96px;height:56px}
+}
+
+</style>
+</head>
+<body>
+
+<section id="loginScreen" class="login-screen">
+  <div class="login-card">
+    <div class="brand">
+      <div class="brand-icon">🎙️</div>
+      <div>
+        <div class="brand-title">Wireless <span>Mic Pro</span></div>
+        <div class="brand-sub">Turn Your Phone Into a Professional Mic</div>
+      </div>
+    </div>
+    <h2>Master Login</h2>
+    <input id="phone" class="text-input" inputmode="numeric" placeholder="Master number">
+    <input id="password" class="text-input" type="password" placeholder="Password">
+    <button id="loginBtn" class="btn green">Login</button>
+    <div id="loginMsg" class="login-msg"></div>
+  </div>
+</section>
+
+<div id="app" class="app hidden">
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <div class="brand-icon">🎙️</div>
+        <div>
+          <div class="brand-title">Wireless <span>Mic Pro</span></div>
+          <div class="brand-sub">Turn Your Phone Into a Professional Mic</div>
+        </div>
+      </div>
+      <div class="top-actions">
+        <div id="btStatus" class="bt-status">ᛒ Bluetooth Ready</div>
+        <button id="logoutBtn" class="btn">Logout</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="dashboard">
+      <section class="panel">
+        <div class="panel-title">🎙 Microphone <span id="livePill" class="live-pill hidden">● LIVE</span></div>
+        <div class="mic-wrap">
+          <div>
+            <div id="micVisual" class="mic-visual">🎙️</div>
+            <div id="micState" class="mic-state">MIC OFF</div>
+            <div id="listening" class="listening">Stopped</div>
+          </div>
+        </div>
+        <div class="level-row">
+          <div class="wave-bars" id="waveBars">
+            <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+          </div>
+          <div class="meter"><div id="meterFill" class="meter-fill"></div></div>
+        </div>
+        <div class="dual-btn">
+          <button id="micOnBtn" class="btn green">🎙 MIC ON</button>
+          <button id="micOffBtn" class="btn off" disabled>🔇 MIC OFF</button>
+        </div>
+        <div class="field">
+          <label>Microphone Input</label>
+          <select id="inputDevice" class="select"><option value="">Phone Microphone (Recommended)</option></select>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-title">🔊 Audio Output</div>
+        <div class="output-cards">
+          <button class="output-card" data-output="phone"><div><div class="ico">📱</div>Phone Speaker</div></button>
+          <button id="bluetoothCard" class="output-card active" data-output="bluetooth"><div><div class="ico">ᛒ</div>Bluetooth Speaker<small>Recommended</small></div></button>
+          <button class="output-card" data-output="wired"><div><div class="ico">🎧</div>Wired Headphones</div></button>
+        </div>
+        <div class="field">
+          <label>Select Output Device</label>
+          <select id="outputDevice" class="select"><option value="">System / Bluetooth Output</option></select>
+        </div>
+        <div id="outputNote" class="note">Bluetooth speaker ko phone settings me pehle connect karein. Uske baad Bluetooth Speaker card select karein.</div>
+        <audio id="monitorAudio" autoplay playsinline></audio>
+      </section>
+
+      <section class="panel">
+        <div class="panel-title">▶️ YouTube Music</div>
+        <div class="yt-search">
+          <input id="ytSearch" class="text-input" placeholder="Search songs, artists, playlists...">
+          <button id="ytSearchBtn" class="btn">Search</button>
+        </div>
+        <div id="ytResults" class="yt-results"></div>
+        <div class="video-box"><iframe id="ytFrame" allow="autoplay; encrypted-media" allowfullscreen></iframe></div>
+        <div class="transport">
+          <button class="btn" id="ytPlay">▶ Play</button>
+          <button class="btn" id="ytPause">⏸ Pause</button>
+        </div>
+        <div class="slider-row">
+          <div class="slider-head"><span>Music Volume</span><span id="musicVal">70%</span></div>
+          <input id="musicVolume" type="range" min="0" max="100" value="70">
+        </div>
+      </section>
+
+      <section class="panel connection-card">
+        <div class="panel-title">⚙ Connection</div>
+        <div class="note">Phone microphone use karna recommended hai. Bluetooth speaker par media audio enabled hona chahiye. Browser output switching support device/browser par depend karta hai.</div>
+        <button id="refreshDevices" class="btn">↻ Refresh Audio Devices</button>
+        <div id="deviceMsg" class="device-msg"></div>
+      </section>
+
+      <section class="panel mixer">
+        <div class="panel-title">▥ Live Audio Mixer</div>
+        <div class="mixer-grid">
+          <div class="mix-card">
+            <div class="name">🎙 Mic Volume</div>
+            <input id="micGain" type="range" min="0" max="2" step=".01" value="1">
+            <div id="micGainVal" class="value">100%</div>
+          </div>
+          <div class="mix-card">
+            <div class="name">♫ Music Volume</div>
+            <input id="musicVolume2" type="range" min="0" max="100" value="70">
+            <div id="musicVal2" class="value">70%</div>
+          </div>
+          <div class="mix-card">
+            <div class="name">↻ Echo</div>
+            <input id="echo" type="range" min="0" max="70" value="0">
+            <div id="echoVal" class="value">0%</div>
+          </div>
+          <div class="mix-card">
+            <div class="name">↕ Bass</div>
+            <input id="bass" type="range" min="-20" max="20" value="0">
+            <div id="bassVal" class="value">0 dB</div>
+          </div>
+          <div class="mix-card">
+            <div class="name">↕ Treble</div>
+            <input id="treble" type="range" min="-20" max="20" value="0">
+            <div id="trebleVal" class="value">0 dB</div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div class="statusbar">
+      <div>● Status: <span id="statusText" class="ok">Ready</span> &nbsp; | &nbsp; Output: <span id="statusOutput">System / Bluetooth</span></div>
+      <div class="footer-version">Wireless Mic Pro v5.0</div>
+    </div>
+  </main>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+let stream=null,ctx=null,source=null,gainNode=null,bassNode=null,trebleNode=null,delayNode=null,feedbackNode=null,wetNode=null,dest=null,analyser=null,raf=0;
+let ytQuery='';
+
+function showApp(){
+  $('loginScreen').classList.add('hidden');
+  $('app').classList.remove('hidden');
+  refreshDevices();
+}
+// Login stays active after refresh/reopen until Logout is pressed.
+if(localStorage.getItem('wmp_master_logged_in')==='yes') showApp();
+
+$('loginBtn').onclick=async()=>{
+  $('loginMsg').textContent='Checking...';
+  try{
+    const r=await fetch('/api/master-login',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({phone:$('phone').value.trim(),password:$('password').value})
+    });
+    const d=await r.json();
+    if(d.ok){
+      localStorage.setItem('wmp_master_logged_in','yes');
+      $('loginMsg').textContent='Login successful';
+      showApp();
+    }else $('loginMsg').textContent='Wrong master number or password';
+  }catch(e){
+    $('loginMsg').textContent='Server login connection error';
+  }
+};
+$('logoutBtn').onclick=()=>{localStorage.removeItem('wmp_master_logged_in');location.reload()};
+
+async function refreshDevices(){
+  if(!navigator.mediaDevices?.enumerateDevices){$('deviceMsg').textContent='Audio device listing supported nahi hai.';return}
+  try{
+    const devices=await navigator.mediaDevices.enumerateDevices();
+    const oldIn=$('inputDevice').value,oldOut=$('outputDevice').value;
+    $('inputDevice').innerHTML='<option value="">Phone Microphone (Recommended)</option>';
+    $('outputDevice').innerHTML='<option value="">System / Bluetooth Output</option>';
+    let ai=1,ao=1;
+    devices.forEach(d=>{
+      if(d.kind==='audioinput') $('inputDevice').add(new Option(d.label||`Microphone ${ai++}`,d.deviceId));
+      if(d.kind==='audiooutput') $('outputDevice').add(new Option(d.label||`Audio Output ${ao++}`,d.deviceId));
+    });
+    if([...$('inputDevice').options].some(o=>o.value===oldIn)) $('inputDevice').value=oldIn;
+    if([...$('outputDevice').options].some(o=>o.value===oldOut)) $('outputDevice').value=oldOut;
+    $('deviceMsg').textContent='Audio devices refreshed';
+  }catch(e){$('deviceMsg').textContent='Audio device list unavailable';}
+}
+
+async function setOutput(){
+  const audio=$('monitorAudio'), id=$('outputDevice').value;
+  if(typeof audio.setSinkId==='function' && id){
+    try{
+      await audio.setSinkId(id);
+      $('statusOutput').textContent=$('outputDevice').selectedOptions[0].text;
+      $('btStatus').textContent='ᛒ Output Selected';
+    }catch(e){
+      $('deviceMsg').textContent='Browser output switch allow nahi kar raha. Phone Bluetooth Media Audio use karein.';
+    }
+  }else{
+    $('statusOutput').textContent='System / Bluetooth';
+  }
+}
+$('outputDevice').onchange=setOutput;
+$('refreshDevices').onclick=refreshDevices;
+
+document.querySelectorAll('.output-card').forEach(card=>{
+  card.onclick=async()=>{
+    document.querySelectorAll('.output-card').forEach(x=>x.classList.remove('active'));
+    card.classList.add('active');
+    if(card.dataset.output==='bluetooth'){
+      await refreshDevices();
+      const opts=[...$('outputDevice').options];
+      const bt=opts.find(o=>/bluetooth|bt|speaker/i.test(o.text));
+      if(bt){
+        $('outputDevice').value=bt.value;
+        await setOutput();
+        $('outputNote').textContent='Bluetooth speaker selected.';
+      }else{
+        $('statusOutput').textContent='Bluetooth via system';
+        $('outputNote').textContent='Bluetooth device naam se browser me nahi mila. Phone settings me speaker ko Media Audio output rakhein.';
+      }
+    }else if(card.dataset.output==='phone'){
+      $('outputDevice').value='';
+      $('statusOutput').textContent='Phone / System';
+    }else{
+      $('outputDevice').value='';
+      $('statusOutput').textContent='Wired / System';
+    }
+  };
+});
+
+function applyMixer(){
+  if(!ctx)return;
+  gainNode.gain.value=+$('micGain').value;
+  bassNode.gain.value=+$('bass').value;
+  trebleNode.gain.value=+$('treble').value;
+  const e=+$('echo').value/100;
+  wetNode.gain.value=e;
+  feedbackNode.gain.value=Math.min(.62,e*.65);
+  delayNode.delayTime.value=.18;
+}
+['micGain','echo','bass','treble'].forEach(id=>{
+  $(id).oninput=()=>{
+    applyMixer();
+    if(id==='micGain') $('micGainVal').textContent=Math.round(+$('micGain').value*100)+'%';
+    if(id==='echo') $('echoVal').textContent=$('echo').value+'%';
+    if(id==='bass') $('bassVal').textContent=$('bass').value+' dB';
+    if(id==='treble') $('trebleVal').textContent=$('treble').value+' dB';
+  };
+});
+
+function updateWave(level){
+  const bars=[...document.querySelectorAll('#waveBars span')];
+  bars.forEach((b,i)=>{
+    const factor=(Math.sin(i*1.3+performance.now()/140)+1)/2;
+    b.style.height=(7+Math.min(25,level*.20*factor))+'px';
+  });
+}
+
+function meterLoop(){
+  if(!analyser)return;
+  const data=new Uint8Array(analyser.frequencyBinCount);
+  analyser.getByteFrequencyData(data);
+  const avg=data.reduce((a,b)=>a+b,0)/data.length;
+  const pct=Math.min(100,avg*1.55);
+  $('meterFill').style.width=pct+'%';
+  updateWave(avg);
+  raf=requestAnimationFrame(meterLoop);
+}
+
+async function startMic(){
+  try{
+    if(stream) stopMic();
+    const selected=$('inputDevice').value;
+    stream=await navigator.mediaDevices.getUserMedia({
+      audio:{
+        deviceId:selected?{exact:selected}:undefined,
+        echoCancellation:false,
+        noiseSuppression:false,
+        autoGainControl:false
+      },
+      video:false
+    });
+    ctx=new (window.AudioContext||window.webkitAudioContext)();
+    await ctx.resume();
+    source=ctx.createMediaStreamSource(stream);
+    gainNode=ctx.createGain();
+    bassNode=ctx.createBiquadFilter(); bassNode.type='lowshelf'; bassNode.frequency.value=180;
+    trebleNode=ctx.createBiquadFilter(); trebleNode.type='highshelf'; trebleNode.frequency.value=3500;
+    delayNode=ctx.createDelay(.7);
+    feedbackNode=ctx.createGain();
+    wetNode=ctx.createGain();
+    dest=ctx.createMediaStreamDestination();
+    analyser=ctx.createAnalyser(); analyser.fftSize=256;
+
+    source.connect(gainNode);
+    gainNode.connect(bassNode);
+    bassNode.connect(trebleNode);
+    trebleNode.connect(dest);
+    trebleNode.connect(delayNode);
+    delayNode.connect(feedbackNode);
+    feedbackNode.connect(delayNode);
+    delayNode.connect(wetNode);
+    wetNode.connect(dest);
+    trebleNode.connect(analyser);
+
+    $('monitorAudio').srcObject=dest.stream;
+    await $('monitorAudio').play().catch(()=>{});
+    applyMixer();
+    await setOutput();
+
+    $('micVisual').classList.add('on');
+    $('micState').classList.add('on');
+    $('micState').textContent='MIC ON';
+    $('listening').textContent='Listening...';
+    $('livePill').classList.remove('hidden');
+    $('micOnBtn').disabled=true;
+    $('micOffBtn').disabled=false;
+    $('statusText').textContent='Mic Active';
+    meterLoop();
+    refreshDevices();
+  }catch(e){
+    $('deviceMsg').textContent='Mic start failed: '+(e.message||e.name);
+  }
+}
+function stopMic(){
+  cancelAnimationFrame(raf);
+  if(stream) stream.getTracks().forEach(t=>t.stop());
+  if(ctx) ctx.close();
+  stream=ctx=null;
+  $('monitorAudio').srcObject=null;
+  $('meterFill').style.width='0';
+  document.querySelectorAll('#waveBars span').forEach(b=>b.style.height='7px');
+  $('micVisual').classList.remove('on');
+  $('micState').classList.remove('on');
+  $('micState').textContent='MIC OFF';
+  $('listening').textContent='Stopped';
+  $('livePill').classList.add('hidden');
+  $('micOnBtn').disabled=false;
+  $('micOffBtn').disabled=true;
+  $('statusText').textContent='Ready';
+}
+$('micOnBtn').onclick=startMic;
+$('micOffBtn').onclick=stopMic;
+
+let currentYtVideoId='';
+
+function ytEscape(s){
+  return String(s??'').replace(/[&<>"']/g,c=>({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'
+  }[c]));
+}
+
+function ytLoadVideo(id){
+  if(!id)return;
+  currentYtVideoId=id;
+  $('ytFrame').src='https://www.youtube.com/embed/'+encodeURIComponent(id)+'?autoplay=1&enablejsapi=1&playsinline=1';
+  $('ytResults').style.display='none';
+}
+
+async function ytDoSearch(){
+  ytQuery=$('ytSearch').value.trim();
+  if(!ytQuery)return;
+
+  const box=$('ytResults');
+  box.style.display='block';
+  box.innerHTML='<div class="yt-msg">Searching...</div>';
+
+  try{
+    const r=await fetch('/api/youtube-search?q='+encodeURIComponent(ytQuery));
+    const d=await r.json();
+
+    if(!r.ok){
+      throw new Error(d?.error || 'YouTube search failed');
+    }
+
+    const items=Array.isArray(d) ? d : (d.items || d.results || []);
+    if(!items.length){
+      box.innerHTML='<div class="yt-msg">No songs found.</div>';
+      return;
+    }
+
+    box.innerHTML='';
+    items.slice(0,15).forEach(item=>{
+      const id=item.videoId || item.id?.videoId || item.id;
+      if(!id || typeof id!=='string')return;
+
+      const title=item.title || item.snippet?.title || 'YouTube video';
+      const channel=item.channelTitle || item.snippet?.channelTitle || '';
+      const thumb=item.thumbnail ||
+        item.thumbnails?.medium?.url ||
+        item.snippet?.thumbnails?.medium?.url ||
+        item.snippet?.thumbnails?.default?.url ||
+        ('https://i.ytimg.com/vi/'+id+'/mqdefault.jpg');
+
+      const row=document.createElement('div');
+      row.className='yt-result';
+      row.innerHTML=
+        '<img src="'+ytEscape(thumb)+'" alt="">' +
+        '<div><div class="yt-result-title">'+ytEscape(title)+'</div>' +
+        '<div class="yt-result-channel">'+ytEscape(channel)+'</div></div>';
+      row.onclick=()=>ytLoadVideo(id);
+      box.appendChild(row);
+    });
+
+    if(!box.children.length){
+      box.innerHTML='<div class="yt-msg">No playable results found.</div>';
+    }
+  }catch(e){
+    box.innerHTML='<div class="yt-msg">Search connection error. Render me YOUTUBE_API_KEY aur /api/youtube-search endpoint check karein.</div>';
+  }
+}
+
+$('ytSearchBtn').onclick=ytDoSearch;
+$('ytSearch').addEventListener('keydown',e=>{if(e.key==='Enter')ytDoSearch()});
+
+function ytCommand(func,args=[]){
+  const f=$('ytFrame');
+  if(!f.contentWindow || !currentYtVideoId)return;
+  f.contentWindow.postMessage(JSON.stringify({event:'command',func,args}),'*');
+}
+$('ytPlay').onclick=()=>ytCommand('playVideo');
+$('ytPause').onclick=()=>ytCommand('pauseVideo');
+
+function setMusic(v){
+  $('musicVolume').value=v;
+  $('musicVolume2').value=v;
+  $('musicVal').textContent=v+'%';
+  $('musicVal2').textContent=v+'%';
+  ytCommand('setVolume',[Number(v)]);
+}
+$('musicVolume').oninput=()=>setMusic($('musicVolume').value);
+$('musicVolume2').oninput=()=>setMusic($('musicVolume2').value);
+
+window.addEventListener('beforeunload',()=>{if(stream)stream.getTracks().forEach(t=>t.stop())});
+</script>
+</body>
+</html>
