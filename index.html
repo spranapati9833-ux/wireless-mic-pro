@@ -301,8 +301,9 @@ input[type=range]{width:100%;accent-color:#168cff}
         <div class="field">
           <label>Select Output Device</label>
           <select id="outputDevice" class="select"><option value="">System / Bluetooth Output</option></select>
+        <button id="chooseOutputBtn" class="btn blue" style="width:100%;margin-top:8px">🔊 CHOOSE BLUETOOTH OUTPUT</button>
         </div>
-        <div id="outputNote" class="note">Bluetooth speaker ko phone settings me pehle connect karein. Uske baad Bluetooth Speaker card select karein.</div>
+        <div id="outputNote" class="note">Bluetooth speaker ko phone settings me connect karein. Phir CHOOSE BLUETOOTH OUTPUT dabakar actual speaker select karein.</div>
         <audio id="monitorAudio" autoplay playsinline></audio>
       </section>
 
@@ -423,22 +424,72 @@ async function refreshDevices(){
   }catch(e){$('deviceMsg').textContent='Audio device list unavailable';}
 }
 
-async function setOutput(){
-  const audio=$('monitorAudio'), id=$('outputDevice').value;
-  if(typeof audio.setSinkId==='function' && id){
+async function applySinkId(id, label){
+  const audio=$('monitorAudio');
+  if(!id){
+    $('statusOutput').textContent='System / Bluetooth';
+    return false;
+  }
+  if(typeof audio.setSinkId==='function'){
     try{
       await audio.setSinkId(id);
-      $('statusOutput').textContent=$('outputDevice').selectedOptions[0].text;
-      $('btStatus').textContent='ᛒ Output Selected';
+      localStorage.setItem('wmp_output_sink_id', id);
+      if(label) localStorage.setItem('wmp_output_sink_label', label);
+      $('statusOutput').textContent=label||'Bluetooth Output';
+      $('btStatus').textContent='ᛒ Bluetooth Output Active';
+      $('outputNote').textContent='Mic voice selected Bluetooth/audio output par route ho rahi hai.';
+      return true;
     }catch(e){
-      $('deviceMsg').textContent='Browser output switch allow nahi kar raha. Phone Bluetooth Media Audio use karein.';
+      $('deviceMsg').textContent='Output routing blocked: '+(e.message||e.name);
+      return false;
     }
-  }else{
-    $('statusOutput').textContent='System / Bluetooth';
   }
+  $('deviceMsg').textContent='Is browser me direct output routing supported nahi hai. Phone Media Output me Bluetooth speaker select karein.';
+  return false;
+}
+
+async function setOutput(){
+  const id=$('outputDevice').value;
+  const label=$('outputDevice').selectedOptions[0]?.text||'';
+  await applySinkId(id,label);
 }
 $('outputDevice').onchange=setOutput;
 $('refreshDevices').onclick=refreshDevices;
+
+$('chooseOutputBtn').onclick=async()=>{
+  try{
+    // Best path on browsers that support the Audio Output Devices API.
+    if(navigator.mediaDevices && typeof navigator.mediaDevices.selectAudioOutput==='function'){
+      const device=await navigator.mediaDevices.selectAudioOutput();
+      await refreshDevices();
+
+      let opt=[...$('outputDevice').options].find(o=>o.value===device.deviceId);
+      if(!opt){
+        opt=new Option(device.label||'Selected Bluetooth / Audio Output', device.deviceId);
+        $('outputDevice').add(opt);
+      }
+      $('outputDevice').value=device.deviceId;
+      await applySinkId(device.deviceId, device.label||opt.text);
+      return;
+    }
+
+    // Fallback: use enumerated output devices if the browser exposes them.
+    await refreshDevices();
+    const opts=[...$('outputDevice').options].filter(o=>o.value);
+    const bt=opts.find(o=>/bluetooth|bt|speaker|headset|buds|audio/i.test(o.text));
+    if(bt){
+      $('outputDevice').value=bt.value;
+      await applySinkId(bt.value, bt.text);
+      return;
+    }
+
+    $('outputNote').textContent='Direct Bluetooth chooser is browser-limited. Phone ke Media Output / Bluetooth settings me speaker select karein, phir MIC ON karein.';
+    $('deviceMsg').textContent='No selectable browser audio output found.';
+  }catch(e){
+    $('deviceMsg').textContent='Output selection cancelled/failed: '+(e.message||e.name);
+  }
+};
+
 
 document.querySelectorAll('.output-card').forEach(card=>{
   card.onclick=async()=>{
@@ -447,14 +498,15 @@ document.querySelectorAll('.output-card').forEach(card=>{
     if(card.dataset.output==='bluetooth'){
       await refreshDevices();
       const opts=[...$('outputDevice').options];
-      const bt=opts.find(o=>/bluetooth|bt|speaker/i.test(o.text));
+      const bt=opts.find(o=>/bluetooth|bt|speaker|headset|buds|audio/i.test(o.text) && o.value);
       if(bt){
         $('outputDevice').value=bt.value;
-        await setOutput();
-        $('outputNote').textContent='Bluetooth speaker selected.';
+        await applySinkId(bt.value, bt.text);
+      }else if(navigator.mediaDevices && typeof navigator.mediaDevices.selectAudioOutput==='function'){
+        $('outputNote').textContent='Bluetooth card selected. Ab CHOOSE BLUETOOTH OUTPUT dabakar speaker choose karein.';
       }else{
         $('statusOutput').textContent='Bluetooth via system';
-        $('outputNote').textContent='Bluetooth device naam se browser me nahi mila. Phone settings me speaker ko Media Audio output rakhein.';
+        $('outputNote').textContent='Browser direct device list nahi de raha. Phone Media Output me Bluetooth speaker select karein.';
       }
     }else if(card.dataset.output==='phone'){
       $('outputDevice').value='';
@@ -574,7 +626,15 @@ async function startMic(){
     $('monitorAudio').srcObject=dest.stream;
     await $('monitorAudio').play().catch(()=>{});
     applyMixer();
-    await setOutput();
+
+    const savedSink=localStorage.getItem('wmp_output_sink_id');
+    const savedLabel=localStorage.getItem('wmp_output_sink_label');
+    if(savedSink){
+      const ok=await applySinkId(savedSink, savedLabel||'Saved Bluetooth Output');
+      if(!ok) await setOutput();
+    }else{
+      await setOutput();
+    }
 
     $('micVisual').classList.add('on');
     $('micState').classList.add('on');
