@@ -180,47 +180,6 @@ input[type=range]{width:100%;accent-color:#168cff}
   .dual-btn{grid-template-columns:1fr}
   .yt-search{grid-template-columns:1fr}
 }
-
-/* YouTube search result list */
-.yt-results{
-  margin-top:14px;
-  display:none;
-  max-height:330px;
-  overflow:auto;
-  border:1px solid #16456f;
-  border-radius:14px;
-  background:#04111e;
-}
-.yt-result{
-  display:grid;
-  grid-template-columns:120px minmax(0,1fr);
-  gap:12px;
-  padding:10px;
-  border-bottom:1px solid #123754;
-  cursor:pointer;
-  transition:.15s;
-}
-.yt-result:last-child{border-bottom:0}
-.yt-result:hover{background:#0a2036}
-.yt-result img{
-  width:120px;height:68px;object-fit:cover;border-radius:9px;background:#000
-}
-.yt-result-title{
-  font-weight:800;
-  line-height:1.25;
-  margin-bottom:7px;
-  overflow:hidden;
-  display:-webkit-box;
-  -webkit-line-clamp:2;
-  -webkit-box-orient:vertical
-}
-.yt-result-channel{color:#9cb5cf;font-size:13px}
-.yt-msg{padding:14px;color:#9cb5cf}
-@media(max-width:560px){
-  .yt-result{grid-template-columns:96px minmax(0,1fr)}
-  .yt-result img{width:96px;height:56px}
-}
-
 </style>
 </head>
 <body>
@@ -280,11 +239,6 @@ input[type=range]{width:100%;accent-color:#168cff}
           <button id="micOnBtn" class="btn green">🎙 MIC ON</button>
           <button id="micOffBtn" class="btn off" disabled>🔇 MIC OFF</button>
         </div>
-        <button id="nearVoiceBtn" class="btn green" style="width:100%;margin-top:10px">🎯 5–10 CM VOICE: ON</button>
-        <button id="voiceOnlyBtn" class="btn green" style="width:100%;margin-top:8px">🛡 VOICE ONLY / ANTI-ECHO: ON</button>
-        <div id="nearVoiceNote" class="note" style="margin-top:7px">
-          Near Voice + Voice Only: close speech ko priority; background music/noise aur feedback ko aggressively cut karega.
-        </div>
         <div class="field">
           <label>Microphone Input</label>
           <select id="inputDevice" class="select"><option value="">Phone Microphone (Recommended)</option></select>
@@ -301,9 +255,8 @@ input[type=range]{width:100%;accent-color:#168cff}
         <div class="field">
           <label>Select Output Device</label>
           <select id="outputDevice" class="select"><option value="">System / Bluetooth Output</option></select>
-        <button id="chooseOutputBtn" class="btn blue" style="width:100%;margin-top:8px">🔊 CHOOSE BLUETOOTH OUTPUT</button>
         </div>
-        <div id="outputNote" class="note">Bluetooth speaker ko phone settings me connect karein. Phir CHOOSE BLUETOOTH OUTPUT dabakar actual speaker select karein.</div>
+        <div id="outputNote" class="note">Bluetooth speaker ko phone settings me pehle connect karein. Uske baad Bluetooth Speaker card select karein.</div>
         <audio id="monitorAudio" autoplay playsinline></audio>
       </section>
 
@@ -313,7 +266,6 @@ input[type=range]{width:100%;accent-color:#168cff}
           <input id="ytSearch" class="text-input" placeholder="Search songs, artists, playlists...">
           <button id="ytSearchBtn" class="btn">Search</button>
         </div>
-        <div id="ytResults" class="yt-results"></div>
         <div class="video-box"><iframe id="ytFrame" allow="autoplay; encrypted-media" allowfullscreen></iframe></div>
         <div class="transport">
           <button class="btn" id="ytPlay">▶ Play</button>
@@ -366,14 +318,12 @@ input[type=range]{width:100%;accent-color:#168cff}
 
     <div class="statusbar">
       <div>● Status: <span id="statusText" class="ok">Ready</span> &nbsp; | &nbsp; Output: <span id="statusOutput">System / Bluetooth</span></div>
-      <div class="footer-version">Wireless Mic Pro v5.0</div>
+      <div class="footer-version">Wireless Mic Pro v5.1 • Web Bluetooth Output Fix</div>
     </div>
   </main>
 </div>
 
 <script>
-let nearVoiceMode=true, nearVoiceHoldUntil=0, voiceOnlyMode=true;
-
 const $=id=>document.getElementById(id);
 let stream=null,ctx=null,source=null,gainNode=null,bassNode=null,trebleNode=null,delayNode=null,feedbackNode=null,wetNode=null,dest=null,analyser=null,raf=0;
 let ytQuery='';
@@ -383,7 +333,6 @@ function showApp(){
   $('app').classList.remove('hidden');
   refreshDevices();
 }
-// Login stays active after refresh/reopen until Logout is pressed.
 if(localStorage.getItem('wmp_master_logged_in')==='yes') showApp();
 
 $('loginBtn').onclick=async()=>{
@@ -424,72 +373,25 @@ async function refreshDevices(){
   }catch(e){$('deviceMsg').textContent='Audio device list unavailable';}
 }
 
-async function applySinkId(id, label){
-  const audio=$('monitorAudio');
-  if(!id){
-    $('statusOutput').textContent='System / Bluetooth';
-    return false;
-  }
-  if(typeof audio.setSinkId==='function'){
+async function setOutput(){
+  const audio=$('monitorAudio'), id=$('outputDevice').value;
+  if(typeof audio.setSinkId==='function' && id){
     try{
       await audio.setSinkId(id);
-      localStorage.setItem('wmp_output_sink_id', id);
-      if(label) localStorage.setItem('wmp_output_sink_label', label);
-      $('statusOutput').textContent=label||'Bluetooth Output';
-      $('btStatus').textContent='ᛒ Bluetooth Output Active';
-      $('outputNote').textContent='Mic voice selected Bluetooth/audio output par route ho rahi hai.';
+      $('statusOutput').textContent=$('outputDevice').selectedOptions[0].text;
+      $('btStatus').textContent='ᛒ Bluetooth Output Selected';
+      $('deviceMsg').textContent='Selected output par live mic audio bheja jayega.';
       return true;
     }catch(e){
-      $('deviceMsg').textContent='Output routing blocked: '+(e.message||e.name);
+      $('deviceMsg').textContent='Browser ne direct output switch allow nahi kiya. Phone Bluetooth settings me speaker ko Media Audio output banao.';
       return false;
     }
   }
-  $('deviceMsg').textContent='Is browser me direct output routing supported nahi hai. Phone Media Output me Bluetooth speaker select karein.';
-  return false;
-}
-
-async function setOutput(){
-  const id=$('outputDevice').value;
-  const label=$('outputDevice').selectedOptions[0]?.text||'';
-  await applySinkId(id,label);
+  $('statusOutput').textContent='System / Bluetooth';
+  return !id;
 }
 $('outputDevice').onchange=setOutput;
 $('refreshDevices').onclick=refreshDevices;
-
-$('chooseOutputBtn').onclick=async()=>{
-  try{
-    // Best path on browsers that support the Audio Output Devices API.
-    if(navigator.mediaDevices && typeof navigator.mediaDevices.selectAudioOutput==='function'){
-      const device=await navigator.mediaDevices.selectAudioOutput();
-      await refreshDevices();
-
-      let opt=[...$('outputDevice').options].find(o=>o.value===device.deviceId);
-      if(!opt){
-        opt=new Option(device.label||'Selected Bluetooth / Audio Output', device.deviceId);
-        $('outputDevice').add(opt);
-      }
-      $('outputDevice').value=device.deviceId;
-      await applySinkId(device.deviceId, device.label||opt.text);
-      return;
-    }
-
-    // Fallback: use enumerated output devices if the browser exposes them.
-    await refreshDevices();
-    const opts=[...$('outputDevice').options].filter(o=>o.value);
-    const bt=opts.find(o=>/bluetooth|bt|speaker|headset|buds|audio/i.test(o.text));
-    if(bt){
-      $('outputDevice').value=bt.value;
-      await applySinkId(bt.value, bt.text);
-      return;
-    }
-
-    $('outputNote').textContent='Direct Bluetooth chooser is browser-limited. Phone ke Media Output / Bluetooth settings me speaker select karein, phir MIC ON karein.';
-    $('deviceMsg').textContent='No selectable browser audio output found.';
-  }catch(e){
-    $('deviceMsg').textContent='Output selection cancelled/failed: '+(e.message||e.name);
-  }
-};
-
 
 document.querySelectorAll('.output-card').forEach(card=>{
   card.onclick=async()=>{
@@ -498,15 +400,15 @@ document.querySelectorAll('.output-card').forEach(card=>{
     if(card.dataset.output==='bluetooth'){
       await refreshDevices();
       const opts=[...$('outputDevice').options];
-      const bt=opts.find(o=>/bluetooth|bt|speaker|headset|buds|audio/i.test(o.text) && o.value);
+      const bt=opts.find(o=>/bluetooth|bt|speaker|a2dp/i.test(o.text));
       if(bt){
         $('outputDevice').value=bt.value;
-        await applySinkId(bt.value, bt.text);
-      }else if(navigator.mediaDevices && typeof navigator.mediaDevices.selectAudioOutput==='function'){
-        $('outputNote').textContent='Bluetooth card selected. Ab CHOOSE BLUETOOTH OUTPUT dabakar speaker choose karein.';
+        const ok=await setOutput();
+        $('outputNote').textContent=ok?'Bluetooth speaker selected. MIC ON karne par live voice isi output par jayegi.':'Bluetooth speaker browser se direct select nahi hua. Phone settings me Media Audio ON rakho.';
       }else{
         $('statusOutput').textContent='Bluetooth via system';
-        $('outputNote').textContent='Browser direct device list nahi de raha. Phone Media Output me Bluetooth speaker select karein.';
+        $('btStatus').textContent='ᛒ Bluetooth via Phone';
+        $('outputNote').textContent='Bluetooth device browser list me naam se nahi mila. Phone Bluetooth settings me speaker ko Media Audio output rakhein; app system Bluetooth output use karega.';
       }
     }else if(card.dataset.output==='phone'){
       $('outputDevice').value='';
@@ -548,40 +450,12 @@ function updateWave(level){
 
 function meterLoop(){
   if(!analyser)return;
-
-  const t=new Uint8Array(analyser.fftSize);
-  analyser.getByteTimeDomainData(t);
-  let sum=0;
-  for(let i=0;i<t.length;i++){
-    const x=(t[i]-128)/128;
-    sum+=x*x;
-  }
-  const rms=Math.sqrt(sum/t.length);
-
-  // Approximate "near voice" gate. This cannot measure centimeters;
-  // it uses signal strength to prioritize a close voice.
-  const now=performance.now();
-  const openThreshold=0.050;
-  const closeThreshold=0.032;
-
-  if(nearVoiceMode && gateGain && ctx){
-    if(rms>=openThreshold){
-      nearVoiceHoldUntil=now+130;
-      gateGain.gain.setTargetAtTime(voiceOnlyMode?0.82:1,ctx.currentTime,0.006);
-    }else if(now>nearVoiceHoldUntil && rms<closeThreshold){
-      gateGain.gain.setTargetAtTime(voiceOnlyMode?0.001:0.015,ctx.currentTime,0.018);
-    }
-  }else if(gateGain && ctx){
-    gateGain.gain.setTargetAtTime(1,ctx.currentTime,0.015);
-  }
-
-  const pct=Math.min(100,Math.max(0,rms*900));
+  const data=new Uint8Array(analyser.frequencyBinCount);
+  analyser.getByteFrequencyData(data);
+  const avg=data.reduce((a,b)=>a+b,0)/data.length;
+  const pct=Math.min(100,avg*1.55);
   $('meterFill').style.width=pct+'%';
-  updateWave(pct*.8);
-  $('listening').textContent = nearVoiceMode
-    ? (rms>=openThreshold || now<nearVoiceHoldUntil ? 'Near voice detected' : 'Waiting for close voice...')
-    : 'Listening...';
-
+  updateWave(avg);
   raf=requestAnimationFrame(meterLoop);
 }
 
@@ -592,8 +466,8 @@ async function startMic(){
     stream=await navigator.mediaDevices.getUserMedia({
       audio:{
         deviceId:selected?{exact:selected}:undefined,
-        echoCancellation:true,
-        noiseSuppression:true,
+        echoCancellation:false,
+        noiseSuppression:false,
         autoGainControl:false
       },
       video:false
@@ -601,11 +475,6 @@ async function startMic(){
     ctx=new (window.AudioContext||window.webkitAudioContext)();
     await ctx.resume();
     source=ctx.createMediaStreamSource(stream);
-    gateGain=ctx.createGain(); gateGain.gain.value=nearVoiceMode?0.001:1;
-    voiceHP=ctx.createBiquadFilter(); voiceHP.type='highpass'; voiceHP.frequency.value=140; voiceHP.Q.value=.7;
-    voiceLP=ctx.createBiquadFilter(); voiceLP.type='lowpass'; voiceLP.frequency.value=4200; voiceLP.Q.value=.7;
-    voiceComp=ctx.createDynamicsCompressor();
-    voiceComp.threshold.value=-28; voiceComp.knee.value=18; voiceComp.ratio.value=5; voiceComp.attack.value=.004; voiceComp.release.value=.12;
     gainNode=ctx.createGain();
     bassNode=ctx.createBiquadFilter(); bassNode.type='lowshelf'; bassNode.frequency.value=180;
     trebleNode=ctx.createBiquadFilter(); trebleNode.type='highshelf'; trebleNode.frequency.value=3500;
@@ -615,25 +484,37 @@ async function startMic(){
     dest=ctx.createMediaStreamDestination();
     analyser=ctx.createAnalyser(); analyser.fftSize=256;
 
-    source.connect(analyser);
-    source.connect(gateGain);
-    gateGain.connect(voiceHP); voiceHP.connect(voiceLP); voiceLP.connect(voiceComp); voiceComp.connect(gainNode);
+    source.connect(gainNode);
     gainNode.connect(bassNode);
     bassNode.connect(trebleNode);
     trebleNode.connect(dest);
-    /* Artificial echo disabled in Voice Only mode */
+    trebleNode.connect(delayNode);
+    delayNode.connect(feedbackNode);
+    feedbackNode.connect(delayNode);
+    delayNode.connect(wetNode);
+    wetNode.connect(dest);
+    trebleNode.connect(analyser);
 
     $('monitorAudio').srcObject=dest.stream;
-    await $('monitorAudio').play().catch(()=>{});
     applyMixer();
 
-    const savedSink=localStorage.getItem('wmp_output_sink_id');
-    const savedLabel=localStorage.getItem('wmp_output_sink_label');
-    if(savedSink){
-      const ok=await applySinkId(savedSink, savedLabel||'Saved Bluetooth Output');
-      if(!ok) await setOutput();
-    }else{
-      await setOutput();
+    const btCard=$('bluetoothCard');
+    const bluetoothSelected=btCard.classList.contains('active');
+    if(bluetoothSelected){
+      const opts=[...$('outputDevice').options];
+      if(!$('outputDevice').value){
+        const bt=opts.find(o=>/bluetooth|bt|speaker|a2dp/i.test(o.text));
+        if(bt) $('outputDevice').value=bt.value;
+      }
+    }
+
+    await $('monitorAudio').play().catch(()=>{});
+    const routed = await setOutput();
+
+    if(bluetoothSelected && !$('outputDevice').value){
+      $('deviceMsg').textContent='Bluetooth system output use ho raha hai. Agar voice phone speaker se aaye to phone Bluetooth Media Audio select karo.';
+    } else if(bluetoothSelected && !routed){
+      $('deviceMsg').textContent='Bluetooth route browser se force nahi hua. Phone settings me speaker ko Media Audio output set karo.';
     }
 
     $('micVisual').classList.add('on');
@@ -669,121 +550,25 @@ function stopMic(){
 }
 $('micOnBtn').onclick=startMic;
 $('micOffBtn').onclick=stopMic;
-$('nearVoiceBtn').onclick=()=>{
-  nearVoiceMode=!nearVoiceMode;
-  $('nearVoiceBtn').textContent=nearVoiceMode?'🎯 5–10 CM VOICE: ON':'🎯 5–10 CM VOICE: OFF';
-  $('nearVoiceBtn').classList.toggle('green',nearVoiceMode);
-  $('nearVoiceNote').textContent=nearVoiceMode
-    ? 'Near Voice + Voice Only: close speech ko priority; background music/noise aur feedback ko aggressively cut karega.'
-    : 'Near Voice mode OFF: microphone normal sensitivity par chalega.';
-  if(gateGain&&ctx){
-    gateGain.gain.setTargetAtTime(nearVoiceMode?0.015:1,ctx.currentTime,0.02);
-  }
-};
-
-let currentYtVideoId='';
-
-function ytEscape(s){
-  return String(s??'').replace(/[&<>"']/g,c=>({
-    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'
-  }[c]));
-}
-
-function ytLoadVideo(id){
-  if(!id)return;
-  currentYtVideoId=id;
-  $('ytFrame').src='https://www.youtube.com/embed/'+encodeURIComponent(id)+'?autoplay=1&enablejsapi=1&playsinline=1';
-  $('ytResults').style.display='none';
-}
-
-async function ytDoSearch(){
-  ytQuery=$('ytSearch').value.trim();
-  if(!ytQuery)return;
-
-  const box=$('ytResults');
-  box.style.display='block';
-  box.innerHTML='<div class="yt-msg">Searching...</div>';
-
-  try{
-    const r=await fetch('/api/youtube-search?q='+encodeURIComponent(ytQuery));
-    const d=await r.json();
-
-    if(!r.ok){
-      throw new Error(d?.error || 'YouTube search failed');
-    }
-
-    const items=Array.isArray(d) ? d : (d.items || d.results || []);
-    if(!items.length){
-      box.innerHTML='<div class="yt-msg">No songs found.</div>';
-      return;
-    }
-
-    box.innerHTML='';
-    items.slice(0,15).forEach(item=>{
-      const id=item.videoId || item.id?.videoId || item.id;
-      if(!id || typeof id!=='string')return;
-
-      const title=item.title || item.snippet?.title || 'YouTube video';
-      const channel=item.channelTitle || item.snippet?.channelTitle || '';
-      const thumb=item.thumbnail ||
-        item.thumbnails?.medium?.url ||
-        item.snippet?.thumbnails?.medium?.url ||
-        item.snippet?.thumbnails?.default?.url ||
-        ('https://i.ytimg.com/vi/'+id+'/mqdefault.jpg');
-
-      const row=document.createElement('div');
-      row.className='yt-result';
-      row.innerHTML=
-        '<img src="'+ytEscape(thumb)+'" alt="">' +
-        '<div><div class="yt-result-title">'+ytEscape(title)+'</div>' +
-        '<div class="yt-result-channel">'+ytEscape(channel)+'</div></div>';
-      row.onclick=()=>ytLoadVideo(id);
-      box.appendChild(row);
-    });
-
-    if(!box.children.length){
-      box.innerHTML='<div class="yt-msg">No playable results found.</div>';
-    }
-  }catch(e){
-    box.innerHTML='<div class="yt-msg">Search connection error. Render me YOUTUBE_API_KEY aur /api/youtube-search endpoint check karein.</div>';
-  }
-}
-
-$('ytSearchBtn').onclick=ytDoSearch;
-$('ytSearch').addEventListener('keydown',e=>{if(e.key==='Enter')ytDoSearch()});
-
-function ytCommand(func,args=[]){
-  const f=$('ytFrame');
-  if(!f.contentWindow || !currentYtVideoId)return;
-  f.contentWindow.postMessage(JSON.stringify({event:'command',func,args}),'*');
-}
-$('ytPlay').onclick=()=>ytCommand('playVideo');
-$('ytPause').onclick=()=>ytCommand('pauseVideo');
 
 function setMusic(v){
   $('musicVolume').value=v;
   $('musicVolume2').value=v;
   $('musicVal').textContent=v+'%';
   $('musicVal2').textContent=v+'%';
-  ytCommand('setVolume',[Number(v)]);
 }
 $('musicVolume').oninput=()=>setMusic($('musicVolume').value);
 $('musicVolume2').oninput=()=>setMusic($('musicVolume2').value);
 
-window.addEventListener('beforeunload',()=>{if(stream)stream.getTracks().forEach(t=>t.stop())});
-
-$('voiceOnlyBtn').onclick=()=>{
-  voiceOnlyMode=!voiceOnlyMode;
-  $('voiceOnlyBtn').textContent=voiceOnlyMode?'🛡 VOICE ONLY / ANTI-ECHO: ON':'🛡 VOICE ONLY / ANTI-ECHO: OFF';
-  $('voiceOnlyBtn').classList.toggle('green',voiceOnlyMode);
-  if(gateGain&&ctx){
-    gateGain.gain.setTargetAtTime(voiceOnlyMode?0.001:1,ctx.currentTime,0.015);
-  }
-  if(voiceHP) voiceHP.frequency.value=voiceOnlyMode?140:20;
-  if(voiceLP) voiceLP.frequency.value=voiceOnlyMode?4200:18000;
-  if(voiceComp) voiceComp.ratio.value=voiceOnlyMode?5:2;
+$('ytSearchBtn').onclick=()=>{
+  ytQuery=$('ytSearch').value.trim();
+  if(!ytQuery)return;
+  $('ytFrame').src='https://www.youtube.com/embed?listType=search&list='+encodeURIComponent(ytQuery)+'&autoplay=1';
 };
+$('ytPlay').onclick=()=>{if(ytQuery&&!$('ytFrame').src) $('ytSearchBtn').click()};
+$('ytPause').onclick=()=>{$('ytFrame').src=$('ytFrame').src};
 
+window.addEventListener('beforeunload',()=>{if(stream)stream.getTracks().forEach(t=>t.stop())});
 </script>
 </body>
 </html>
