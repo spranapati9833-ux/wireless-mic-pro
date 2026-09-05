@@ -280,6 +280,10 @@ input[type=range]{width:100%;accent-color:#168cff}
           <button id="micOnBtn" class="btn green">🎙 MIC ON</button>
           <button id="micOffBtn" class="btn off" disabled>🔇 MIC OFF</button>
         </div>
+        <button id="nearVoiceBtn" class="btn green" style="width:100%;margin-top:10px">🎯 5–10 CM VOICE: ON</button>
+        <div id="nearVoiceNote" class="note" style="margin-top:7px">
+          Near Voice mode: close voice ko priority milegi; door ki halki awaaz/noise gate ho jayegi.
+        </div>
         <div class="field">
           <label>Microphone Input</label>
           <select id="inputDevice" class="select"><option value="">Phone Microphone (Recommended)</option></select>
@@ -366,6 +370,8 @@ input[type=range]{width:100%;accent-color:#168cff}
 </div>
 
 <script>
+let nearVoiceMode=true, nearVoiceHoldUntil=0;
+
 const $=id=>document.getElementById(id);
 let stream=null,ctx=null,source=null,gainNode=null,bassNode=null,trebleNode=null,delayNode=null,feedbackNode=null,wetNode=null,dest=null,analyser=null,raf=0;
 let ytQuery='';
@@ -489,12 +495,40 @@ function updateWave(level){
 
 function meterLoop(){
   if(!analyser)return;
-  const data=new Uint8Array(analyser.frequencyBinCount);
-  analyser.getByteFrequencyData(data);
-  const avg=data.reduce((a,b)=>a+b,0)/data.length;
-  const pct=Math.min(100,avg*1.55);
+
+  const t=new Uint8Array(analyser.fftSize);
+  analyser.getByteTimeDomainData(t);
+  let sum=0;
+  for(let i=0;i<t.length;i++){
+    const x=(t[i]-128)/128;
+    sum+=x*x;
+  }
+  const rms=Math.sqrt(sum/t.length);
+
+  // Approximate "near voice" gate. This cannot measure centimeters;
+  // it uses signal strength to prioritize a close voice.
+  const now=performance.now();
+  const openThreshold=0.030;
+  const closeThreshold=0.020;
+
+  if(nearVoiceMode && gateGain && ctx){
+    if(rms>=openThreshold){
+      nearVoiceHoldUntil=now+180;
+      gateGain.gain.setTargetAtTime(1,ctx.currentTime,0.012);
+    }else if(now>nearVoiceHoldUntil && rms<closeThreshold){
+      gateGain.gain.setTargetAtTime(0.015,ctx.currentTime,0.030);
+    }
+  }else if(gateGain && ctx){
+    gateGain.gain.setTargetAtTime(1,ctx.currentTime,0.015);
+  }
+
+  const pct=Math.min(100,Math.max(0,rms*900));
   $('meterFill').style.width=pct+'%';
-  updateWave(avg);
+  updateWave(pct*.8);
+  $('listening').textContent = nearVoiceMode
+    ? (rms>=openThreshold || now<nearVoiceHoldUntil ? 'Near voice detected' : 'Waiting for close voice...')
+    : 'Listening...';
+
   raf=requestAnimationFrame(meterLoop);
 }
 
@@ -505,8 +539,8 @@ async function startMic(){
     stream=await navigator.mediaDevices.getUserMedia({
       audio:{
         deviceId:selected?{exact:selected}:undefined,
-        echoCancellation:false,
-        noiseSuppression:false,
+        echoCancellation:true,
+        noiseSuppression:true,
         autoGainControl:false
       },
       video:false
@@ -514,6 +548,7 @@ async function startMic(){
     ctx=new (window.AudioContext||window.webkitAudioContext)();
     await ctx.resume();
     source=ctx.createMediaStreamSource(stream);
+    gateGain=ctx.createGain(); gateGain.gain.value=nearVoiceMode?0.015:1;
     gainNode=ctx.createGain();
     bassNode=ctx.createBiquadFilter(); bassNode.type='lowshelf'; bassNode.frequency.value=180;
     trebleNode=ctx.createBiquadFilter(); trebleNode.type='highshelf'; trebleNode.frequency.value=3500;
@@ -523,7 +558,9 @@ async function startMic(){
     dest=ctx.createMediaStreamDestination();
     analyser=ctx.createAnalyser(); analyser.fftSize=256;
 
-    source.connect(gainNode);
+    source.connect(analyser);
+    source.connect(gateGain);
+    gateGain.connect(gainNode);
     gainNode.connect(bassNode);
     bassNode.connect(trebleNode);
     trebleNode.connect(dest);
@@ -532,7 +569,6 @@ async function startMic(){
     feedbackNode.connect(delayNode);
     delayNode.connect(wetNode);
     wetNode.connect(dest);
-    trebleNode.connect(analyser);
 
     $('monitorAudio').srcObject=dest.stream;
     await $('monitorAudio').play().catch(()=>{});
@@ -572,6 +608,17 @@ function stopMic(){
 }
 $('micOnBtn').onclick=startMic;
 $('micOffBtn').onclick=stopMic;
+$('nearVoiceBtn').onclick=()=>{
+  nearVoiceMode=!nearVoiceMode;
+  $('nearVoiceBtn').textContent=nearVoiceMode?'🎯 5–10 CM VOICE: ON':'🎯 5–10 CM VOICE: OFF';
+  $('nearVoiceBtn').classList.toggle('green',nearVoiceMode);
+  $('nearVoiceNote').textContent=nearVoiceMode
+    ? 'Near Voice mode: close voice ko priority milegi; door ki halki awaaz/noise gate ho jayegi.'
+    : 'Near Voice mode OFF: microphone normal sensitivity par chalega.';
+  if(gateGain&&ctx){
+    gateGain.gain.setTargetAtTime(nearVoiceMode?0.015:1,ctx.currentTime,0.02);
+  }
+};
 
 let currentYtVideoId='';
 
