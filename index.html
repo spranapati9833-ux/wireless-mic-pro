@@ -281,8 +281,9 @@ input[type=range]{width:100%;accent-color:#168cff}
           <button id="micOffBtn" class="btn off" disabled>🔇 MIC OFF</button>
         </div>
         <button id="nearVoiceBtn" class="btn green" style="width:100%;margin-top:10px">🎯 5–10 CM VOICE: ON</button>
+        <button id="voiceOnlyBtn" class="btn green" style="width:100%;margin-top:8px">🛡 VOICE ONLY / ANTI-ECHO: ON</button>
         <div id="nearVoiceNote" class="note" style="margin-top:7px">
-          Near Voice mode: close voice ko priority milegi; door ki halki awaaz/noise gate ho jayegi.
+          Near Voice + Voice Only: close speech ko priority; background music/noise aur feedback ko aggressively cut karega.
         </div>
         <div class="field">
           <label>Microphone Input</label>
@@ -370,7 +371,7 @@ input[type=range]{width:100%;accent-color:#168cff}
 </div>
 
 <script>
-let nearVoiceMode=true, nearVoiceHoldUntil=0;
+let nearVoiceMode=true, nearVoiceHoldUntil=0, voiceOnlyMode=true;
 
 const $=id=>document.getElementById(id);
 let stream=null,ctx=null,source=null,gainNode=null,bassNode=null,trebleNode=null,delayNode=null,feedbackNode=null,wetNode=null,dest=null,analyser=null,raf=0;
@@ -508,15 +509,15 @@ function meterLoop(){
   // Approximate "near voice" gate. This cannot measure centimeters;
   // it uses signal strength to prioritize a close voice.
   const now=performance.now();
-  const openThreshold=0.030;
-  const closeThreshold=0.020;
+  const openThreshold=0.050;
+  const closeThreshold=0.032;
 
   if(nearVoiceMode && gateGain && ctx){
     if(rms>=openThreshold){
-      nearVoiceHoldUntil=now+180;
-      gateGain.gain.setTargetAtTime(1,ctx.currentTime,0.012);
+      nearVoiceHoldUntil=now+130;
+      gateGain.gain.setTargetAtTime(voiceOnlyMode?0.82:1,ctx.currentTime,0.006);
     }else if(now>nearVoiceHoldUntil && rms<closeThreshold){
-      gateGain.gain.setTargetAtTime(0.015,ctx.currentTime,0.030);
+      gateGain.gain.setTargetAtTime(voiceOnlyMode?0.001:0.015,ctx.currentTime,0.018);
     }
   }else if(gateGain && ctx){
     gateGain.gain.setTargetAtTime(1,ctx.currentTime,0.015);
@@ -548,7 +549,11 @@ async function startMic(){
     ctx=new (window.AudioContext||window.webkitAudioContext)();
     await ctx.resume();
     source=ctx.createMediaStreamSource(stream);
-    gateGain=ctx.createGain(); gateGain.gain.value=nearVoiceMode?0.015:1;
+    gateGain=ctx.createGain(); gateGain.gain.value=nearVoiceMode?0.001:1;
+    voiceHP=ctx.createBiquadFilter(); voiceHP.type='highpass'; voiceHP.frequency.value=140; voiceHP.Q.value=.7;
+    voiceLP=ctx.createBiquadFilter(); voiceLP.type='lowpass'; voiceLP.frequency.value=4200; voiceLP.Q.value=.7;
+    voiceComp=ctx.createDynamicsCompressor();
+    voiceComp.threshold.value=-28; voiceComp.knee.value=18; voiceComp.ratio.value=5; voiceComp.attack.value=.004; voiceComp.release.value=.12;
     gainNode=ctx.createGain();
     bassNode=ctx.createBiquadFilter(); bassNode.type='lowshelf'; bassNode.frequency.value=180;
     trebleNode=ctx.createBiquadFilter(); trebleNode.type='highshelf'; trebleNode.frequency.value=3500;
@@ -560,15 +565,11 @@ async function startMic(){
 
     source.connect(analyser);
     source.connect(gateGain);
-    gateGain.connect(gainNode);
+    gateGain.connect(voiceHP); voiceHP.connect(voiceLP); voiceLP.connect(voiceComp); voiceComp.connect(gainNode);
     gainNode.connect(bassNode);
     bassNode.connect(trebleNode);
     trebleNode.connect(dest);
-    trebleNode.connect(delayNode);
-    delayNode.connect(feedbackNode);
-    feedbackNode.connect(delayNode);
-    delayNode.connect(wetNode);
-    wetNode.connect(dest);
+    /* Artificial echo disabled in Voice Only mode */
 
     $('monitorAudio').srcObject=dest.stream;
     await $('monitorAudio').play().catch(()=>{});
@@ -613,7 +614,7 @@ $('nearVoiceBtn').onclick=()=>{
   $('nearVoiceBtn').textContent=nearVoiceMode?'🎯 5–10 CM VOICE: ON':'🎯 5–10 CM VOICE: OFF';
   $('nearVoiceBtn').classList.toggle('green',nearVoiceMode);
   $('nearVoiceNote').textContent=nearVoiceMode
-    ? 'Near Voice mode: close voice ko priority milegi; door ki halki awaaz/noise gate ho jayegi.'
+    ? 'Near Voice + Voice Only: close speech ko priority; background music/noise aur feedback ko aggressively cut karega.'
     : 'Near Voice mode OFF: microphone normal sensitivity par chalega.';
   if(gateGain&&ctx){
     gateGain.gain.setTargetAtTime(nearVoiceMode?0.015:1,ctx.currentTime,0.02);
@@ -710,6 +711,19 @@ $('musicVolume').oninput=()=>setMusic($('musicVolume').value);
 $('musicVolume2').oninput=()=>setMusic($('musicVolume2').value);
 
 window.addEventListener('beforeunload',()=>{if(stream)stream.getTracks().forEach(t=>t.stop())});
+
+$('voiceOnlyBtn').onclick=()=>{
+  voiceOnlyMode=!voiceOnlyMode;
+  $('voiceOnlyBtn').textContent=voiceOnlyMode?'🛡 VOICE ONLY / ANTI-ECHO: ON':'🛡 VOICE ONLY / ANTI-ECHO: OFF';
+  $('voiceOnlyBtn').classList.toggle('green',voiceOnlyMode);
+  if(gateGain&&ctx){
+    gateGain.gain.setTargetAtTime(voiceOnlyMode?0.001:1,ctx.currentTime,0.015);
+  }
+  if(voiceHP) voiceHP.frequency.value=voiceOnlyMode?140:20;
+  if(voiceLP) voiceLP.frequency.value=voiceOnlyMode?4200:18000;
+  if(voiceComp) voiceComp.ratio.value=voiceOnlyMode?5:2;
+};
+
 </script>
 </body>
 </html>
