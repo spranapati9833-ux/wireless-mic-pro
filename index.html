@@ -142,7 +142,7 @@ body{overflow-x:hidden}
 input[type=range]{width:100%;accent-color:#168cff}
 
 .mixer{grid-column:1/-1}
-.mixer-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px}
+.mixer-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
 .mix-card{
   background:#0a1c30;border:1px solid #214a70;border-radius:16px;padding:16px
 }
@@ -260,26 +260,9 @@ input[type=range]{width:100%;accent-color:#168cff}
         <audio id="monitorAudio" autoplay playsinline></audio>
       </section>
 
-      <section class="panel">
-        <div class="panel-title">▶️ YouTube Music</div>
-        <div class="yt-search">
-          <input id="ytSearch" class="text-input" placeholder="Search songs, artists, playlists...">
-          <button id="ytSearchBtn" class="btn">Search</button>
-        </div>
-        <div class="video-box"><iframe id="ytFrame" allow="autoplay; encrypted-media" allowfullscreen></iframe></div>
-        <div class="transport">
-          <button class="btn" id="ytPlay">▶ Play</button>
-          <button class="btn" id="ytPause">⏸ Pause</button>
-        </div>
-        <div class="slider-row">
-          <div class="slider-head"><span>Music Volume</span><span id="musicVal">70%</span></div>
-          <input id="musicVolume" type="range" min="0" max="100" value="70">
-        </div>
-      </section>
-
       <section class="panel connection-card">
         <div class="panel-title">⚙ Connection</div>
-        <div class="note">Phone microphone use karna recommended hai. Bluetooth speaker par media audio enabled hona chahiye. Browser output switching support device/browser par depend karta hai.</div>
+        <div class="note">MIC ON par phone mic ko selected Bluetooth speaker par route karne ki koshish hogi. MIC OFF par mic aur live audio completely release ho jayega, jisse normal YouTube/music Bluetooth media output use kar sake.</div>
         <button id="refreshDevices" class="btn">↻ Refresh Audio Devices</button>
         <div id="deviceMsg" class="device-msg"></div>
       </section>
@@ -292,10 +275,6 @@ input[type=range]{width:100%;accent-color:#168cff}
             <input id="micGain" type="range" min="0" max="2" step=".01" value="1">
             <div id="micGainVal" class="value">100%</div>
           </div>
-          <div class="mix-card">
-            <div class="name">♫ Music Volume</div>
-            <input id="musicVolume2" type="range" min="0" max="100" value="70">
-            <div id="musicVal2" class="value">70%</div>
           </div>
           <div class="mix-card">
             <div class="name">↻ Echo</div>
@@ -318,7 +297,7 @@ input[type=range]{width:100%;accent-color:#168cff}
 
     <div class="statusbar">
       <div>● Status: <span id="statusText" class="ok">Ready</span> &nbsp; | &nbsp; Output: <span id="statusOutput">System / Bluetooth</span></div>
-      <div class="footer-version">Wireless Mic Pro v5.1 • Web Bluetooth Output Fix</div>
+      <div class="footer-version">Wireless Mic Pro v5.2 • Mic-Only Bluetooth Mode</div>
     </div>
   </main>
 </div>
@@ -326,7 +305,6 @@ input[type=range]{width:100%;accent-color:#168cff}
 <script>
 const $=id=>document.getElementById(id);
 let stream=null,ctx=null,source=null,gainNode=null,bassNode=null,trebleNode=null,delayNode=null,feedbackNode=null,wetNode=null,dest=null,analyser=null,raf=0;
-let ytQuery='';
 
 function showApp(){
   $('loginScreen').classList.add('hidden');
@@ -531,42 +509,52 @@ async function startMic(){
     $('deviceMsg').textContent='Mic start failed: '+(e.message||e.name);
   }
 }
-function stopMic(){
+async function stopMic(){
   cancelAnimationFrame(raf);
-  if(stream) stream.getTracks().forEach(t=>t.stop());
-  if(ctx) ctx.close();
-  stream=ctx=null;
-  $('monitorAudio').srcObject=null;
-  $('meterFill').style.width='0';
-  document.querySelectorAll('#waveBars span').forEach(b=>b.style.height='7px');
-  $('micVisual').classList.remove('on');
-  $('micState').classList.remove('on');
-  $('micState').textContent='MIC OFF';
-  $('listening').textContent='Stopped';
-  $('livePill').classList.add('hidden');
-  $('micOnBtn').disabled=false;
-  $('micOffBtn').disabled=true;
-  $('statusText').textContent='Ready';
+
+  try{
+    if(stream){
+      stream.getTracks().forEach(t=>{ try{t.stop()}catch(e){} });
+    }
+    if($('monitorAudio')){
+      try{$('monitorAudio').pause()}catch(e){}
+      $('monitorAudio').srcObject=null;
+      $('monitorAudio').removeAttribute('src');
+      try{$('monitorAudio').load()}catch(e){}
+    }
+
+    try{if(source)source.disconnect()}catch(e){}
+    try{if(gainNode)gainNode.disconnect()}catch(e){}
+    try{if(bassNode)bassNode.disconnect()}catch(e){}
+    try{if(trebleNode)trebleNode.disconnect()}catch(e){}
+    try{if(delayNode)delayNode.disconnect()}catch(e){}
+    try{if(feedbackNode)feedbackNode.disconnect()}catch(e){}
+    try{if(wetNode)wetNode.disconnect()}catch(e){}
+    try{if(dest)dest.disconnect?.()}catch(e){}
+    try{if(analyser)analyser.disconnect()}catch(e){}
+
+    if(ctx && ctx.state!=='closed'){
+      try{await ctx.close()}catch(e){}
+    }
+  } finally {
+    stream=ctx=source=gainNode=bassNode=trebleNode=delayNode=feedbackNode=wetNode=dest=analyser=null;
+    $('meterFill').style.width='0';
+    document.querySelectorAll('#waveBars span').forEach(b=>b.style.height='7px');
+    $('micVisual').classList.remove('on');
+    $('micState').classList.remove('on');
+    $('micState').textContent='MIC OFF';
+    $('listening').textContent='Stopped';
+    $('livePill').classList.add('hidden');
+    $('micOnBtn').disabled=false;
+    $('micOffBtn').disabled=true;
+    $('statusText').textContent='Mic Released — Bluetooth Media Free';
+    $('deviceMsg').textContent='MIC OFF: mic aur live audio completely release ho gaya. Ab YouTube/music normal Bluetooth media output par chal sakta hai.';
+  }
 }
 $('micOnBtn').onclick=startMic;
 $('micOffBtn').onclick=stopMic;
 
-function setMusic(v){
-  $('musicVolume').value=v;
-  $('musicVolume2').value=v;
-  $('musicVal').textContent=v+'%';
-  $('musicVal2').textContent=v+'%';
-}
-$('musicVolume').oninput=()=>setMusic($('musicVolume').value);
-$('musicVolume2').oninput=()=>setMusic($('musicVolume2').value);
 
-$('ytSearchBtn').onclick=()=>{
-  ytQuery=$('ytSearch').value.trim();
-  if(!ytQuery)return;
-  $('ytFrame').src='https://www.youtube.com/embed?listType=search&list='+encodeURIComponent(ytQuery)+'&autoplay=1';
-};
-$('ytPlay').onclick=()=>{if(ytQuery&&!$('ytFrame').src) $('ytSearchBtn').click()};
-$('ytPause').onclick=()=>{$('ytFrame').src=$('ytFrame').src};
 
 window.addEventListener('beforeunload',()=>{if(stream)stream.getTracks().forEach(t=>t.stop())});
 </script>
